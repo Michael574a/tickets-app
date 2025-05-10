@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { View, FlatList, StyleSheet } from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { FlatList, StyleSheet, View } from "react-native";
 import {
-  Text,
+  Appbar,
   Button,
+  Chip,
   Modal,
   Portal,
+  Text,
   TextInput,
-  Appbar,
   useTheme,
-  Chip,
 } from "react-native-paper";
-import axios from "axios";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://45.70.15.5:5000";
-
+//const API_URL = "http://45.70.15.5:5000";
+const API_URL = "http://localhost:5000";
 const ImpresorasScreen = () => {
   const theme = useTheme();
   const [impresoras, setImpresoras] = useState([]);

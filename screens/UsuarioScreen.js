@@ -1,7 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   Appbar,
@@ -17,8 +17,8 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import ImpresorasScreen from "./ImpresorasScreen";
 
-const API_URL = "http://45.70.15.5:5000";
-
+//const API_URL = "http://45.70.15.5:5000";
+const API_URL = "http://localhost:5000";
 const UsuarioScreen = () => {
   const theme = useTheme();
   const [tickets, setTickets] = useState([]);

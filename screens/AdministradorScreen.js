@@ -1,7 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
-import { Alert, FlatList, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, FlatList, Platform, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -14,7 +14,8 @@ import {
   useTheme,
 } from "react-native-paper";
 
-const API_URL = "http://45.70.15.5:5000";
+//const API_URL = "http://45.70.15.5:5000";
+const API_URL = "http://192.168.101.8:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
@@ -44,6 +45,7 @@ const AdministradorScreen = () => {
     edificio: "",
     oficina: "",
     estado: "Operativa",
+    isActive: true // Agregar este campo
   });
 
   useEffect(() => {
@@ -72,7 +74,7 @@ const AdministradorScreen = () => {
       };
 
       if (editing) {
-        await axios.put(`${API_URL}/tickets/${editing._id}`, data);
+        await axios.put(`${API_URL}/tickets/${editing.id}`, data);
       } else {
         await axios.post(`${API_URL}/tickets`, data);
       }
@@ -94,32 +96,36 @@ const AdministradorScreen = () => {
     }
   };
 
-  const handleSaveMaquina = async () => {
-    try {
-      const data = {
-        ...formMaquina,
-      };
+ const handleSaveMaquina = async () => {
+  try {
+    const data = {
+      ...formMaquina,
+      noSerie: formMaquina.noSerie, // Asegurar que el nombre del campo coincida
+      isActive: formMaquina.isActive !== undefined ? formMaquina.isActive : true
+    };
 
-      if (editingMaquina) {
-        await axios.put(`${API_URL}/maquinas/${editingMaquina._id}`, data);
-      } else {
-        await axios.post(`${API_URL}/maquinas`, data);
-      }
-
-      setVisibleMaquina(false);
-      setEditingMaquina(null);
-      setFormMaquina({
-        impresora: "",
-        noSerie: "",
-        edificio: "",
-        oficina: "",
-        estado: "Operativa",
-      });
-      fetchAll();
-    } catch (e) {
-      console.error("Error al guardar máquina:", e);
+    if (editingMaquina) {
+      await axios.put(`${API_URL}/maquinas/${editingMaquina.id}`, data); // Cambiar _id por id
+    } else {
+      await axios.post(`${API_URL}/maquinas`, data);
     }
-  };
+
+    setVisibleMaquina(false);
+    setEditingMaquina(null);
+    setFormMaquina({
+      impresora: "",
+      noSerie: "",
+      edificio: "",
+      oficina: "",
+      estado: "Operativa",
+      isActive: true
+    });
+    fetchAll();
+  } catch (e) {
+    console.error("Error al guardar máquina:", e);
+    Alert.alert("Error", "No se pudo guardar la máquina. Verifique los datos.");
+  }
+};
 
   const handleEdit = (item) => {
     setEditing(item);
@@ -151,7 +157,10 @@ const AdministradorScreen = () => {
     ]);
   };
 
-  const handleDeleteMaquina = (id) => {
+  // Modificar handleDeleteMaquina para usar id en lugar de _id
+const handleDeleteMaquina = (id) => {
+  if (Platform.OS === "android") {
+    // Mostrar el mensaje de confirmación en Android
     Alert.alert("Eliminar", "¿Deseas eliminar esta máquina?", [
       { text: "Cancelar" },
       {
@@ -163,20 +172,61 @@ const AdministradorScreen = () => {
             fetchAll();
           } catch (e) {
             console.error("Error al eliminar máquina:", e);
+            Alert.alert("Error", "No se pudo eliminar la máquina.");
           }
         },
       },
     ]);
-  };
-
-  const formatDate = (date) =>
-    new Date(date).toLocaleDateString("es-ES", {
+  } else {
+    // Mostrar el mensaje de confirmación en el navegador
+    const confirmDelete = window.confirm("¿Deseas eliminar esta máquina?");
+    if (confirmDelete) {
+      (async () => {
+        try {
+          await axios.delete(`${API_URL}/maquinas/${id}`);
+          fetchAll();
+        } catch (e) {
+          console.error("Error al eliminar máquina:", e);
+          alert("Error: No se pudo eliminar la máquina.");
+        }
+      })();
+    }
+  }
+};
+const formatDate = (dateString) => {
+  // Si la fecha ya es un objeto Date (puede venir así en algunos casos)
+  if (dateString instanceof Date) {
+    return dateString.toLocaleDateString("es-ES", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  // Manejar el formato de PostgreSQL (2024-05-09 14:39:05.944165)
+  if (typeof dateString === 'string') {
+    // Eliminar los milisegundos si existen
+    const cleanedDate = dateString.split('.')[0];
+    const date = new Date(cleanedDate);
+    
+    // Verificar si la fecha es válida
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+  }
+
+  // Si no se puede parsear, mostrar un mensaje alternativo
+  return "Fecha no disponible";
+};
+
 
   return (
     <Provider theme={theme}>
@@ -225,14 +275,14 @@ const AdministradorScreen = () => {
           {tab === "tickets" && (
             <FlatList
               data={tickets}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.card}>
                   <View style={styles.row}>
-                    <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-                      {maquinas.find((m) => m._id === item.idImpresora?._id)?.impresora || "Desconocida"}
+                     <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+                        {item.impresora_nombre || "Desconocida"}
                     </Text>
-                    <Text>{formatDate(item.createdAt)}</Text>
+                    <Text>{formatDate(item.created_at)}</Text>
                   </View>
 
                   <Chip style={{ marginBottom: 8 }}>{item.tipoDanio}</Chip>
@@ -245,7 +295,7 @@ const AdministradorScreen = () => {
                     <Button icon="pencil" mode="outlined" onPress={() => handleEdit(item)}>
                       Editar
                     </Button>
-                    <Button icon="delete" mode="text" onPress={() => handleDelete(item._id)} textColor="red">
+                    <Button icon="delete" mode="text" onPress={() => handleDelete(item.id)} textColor="red">
                       Eliminar
                     </Button>
                   </View>
@@ -257,7 +307,7 @@ const AdministradorScreen = () => {
           {tab === "maquinas" && (
             <FlatList
               data={maquinas}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.card}>
                   <Text variant="titleMedium">{item.impresora}</Text>
@@ -271,7 +321,7 @@ const AdministradorScreen = () => {
                     <Button icon="pencil" mode="outlined" onPress={() => handleEditMaquina(item)}>
                       Editar
                     </Button>
-                    <Button icon="delete" mode="text" onPress={() => handleDeleteMaquina(item._id)} textColor="red">
+                    <Button icon="delete" mode="text" onPress={() => handleDeleteMaquina(item.id)} textColor="red">
                       Eliminar
                     </Button>
                   </View>
@@ -289,13 +339,13 @@ const AdministradorScreen = () => {
 
             <Text style={{ marginBottom: 8 }}>Impresora:</Text>
             <Picker
-              selectedValue={formData.idImpresora?._id || formData.idImpresora}
+              selectedValue={formData.idImpresora?.id || formData.idImpresora}
               onValueChange={(val) => setFormData({ ...formData, idImpresora: val })}
               style={{ backgroundColor: "#fff", marginBottom: 16 }}
             >
               <Picker.Item label="Seleccione una impresora" value="" />
               {maquinas.map((m) => (
-                <Picker.Item key={m._id} label={m.impresora} value={m._id} />
+                <Picker.Item key={m.id} label={m.impresora} value={m.id} />
               ))}
             </Picker>
 
