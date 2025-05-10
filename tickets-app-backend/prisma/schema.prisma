@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Maquina {
+  id          Int      @id @default(autoincrement())
+  impresora   String
+  no_serie    String   @map("no_serie")
+  edificio    String
+  oficina     String
+  estado      String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  modified_at DateTime @default(now())
+  tickets     Ticket[]
+  @@map("maquinas")
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  id_impresora Int
+  tipo_danio  String
+  reporte     String
+  estado      String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  modified_at DateTime @default(now())
+  impresora   Maquina  @relation(fields: [id_impresora], references: [id])
+  @@map("tickets")
+}
