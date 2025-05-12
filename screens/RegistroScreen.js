@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -6,33 +5,33 @@ import { Button, Text, TextInput } from 'react-native-paper';
 
 const API_URL = "http://192.168.77.36:5000";
 
-export default function LoginScreen({ navigation }) {
+export default function RegistroScreen({ navigation }) {
   const [usuario, setUsuario] = useState('');
   const [contraseña, setContraseña] = useState('');
+  const [rol, setRol] = useState('tecnico'); // Por defecto, el rol será "usuario"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setLoading(true);
     setError('');
-    
+    setSuccess('');
+
     try {
-      const response = await axios.post(`${API_URL}/login`, {
+      const response = await axios.post(`${API_URL}/register`, {
         usuario,
-        contraseña
+        contraseña,
+        rol,
       });
-      
-      await AsyncStorage.setItem('userToken', response.data.token);
-      
-      if (response.data.rol === 'administrador') {
-        navigation.navigate('AdministradorScreen');
-      } else {
-        navigation.navigate('UsuarioScreen');
-      }
-      
+
+      setSuccess('Usuario registrado exitosamente');
+      setUsuario('');
+      setContraseña('');
+      setRol('usuario');
     } catch (err) {
-      console.log('Error completo:', err); 
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
+      console.log('Error completo:', err);
+      setError(err.response?.data?.error || 'Error al registrar usuario');
     } finally {
       setLoading(false);
     }
@@ -40,10 +39,11 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>Inicio de Sesión</Text>
-      
+      <Text variant="headlineMedium" style={styles.title}>Registro de Usuario</Text>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      
+      {success ? <Text style={styles.success}>{success}</Text> : null}
+
       <TextInput
         label="Usuario"
         value={usuario}
@@ -51,7 +51,7 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         autoCapitalize="none"
       />
-      
+
       <TextInput
         label="Contraseña"
         value={contraseña}
@@ -59,22 +59,31 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      
-      <Button 
-        mode="contained" 
-        onPress={handleLogin} 
+
+      <TextInput
+        label="Rol"
+        value={rol}
+        onChangeText={setRol}
+        style={styles.input}
+        autoCapitalize="none"
+      />
+
+      <Button
+        mode="contained"
+        onPress={handleRegister}
         loading={loading}
         disabled={loading}
         style={styles.button}
       >
-        Ingresar
+        Registrar
       </Button>
-      <Button 
-        mode="text" 
-        onPress={() => navigation.navigate('RegistroScreen')} 
+
+      <Button
+        mode="text"
+        onPress={() => navigation.navigate('LoginScreen')}
         style={styles.link}
       >
-        ¿No tienes una cuenta? Regístrate
+        Volver al inicio de sesión
       </Button>
     </View>
   );
@@ -85,5 +94,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: 30, textAlign: 'center' },
   input: { marginBottom: 15 },
   button: { marginTop: 10 },
-  error: { color: 'red', marginBottom: 15, textAlign: 'center' }
+  link: { marginTop: 20, textAlign: 'center' },
+  error: { color: 'red', marginBottom: 15, textAlign: 'center' },
+  success: { color: 'green', marginBottom: 15, textAlign: 'center' },
 });

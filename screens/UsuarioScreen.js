@@ -18,7 +18,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import ImpresorasScreen from "./ImpresorasScreen";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://localhost:5000";
+const API_URL = "http://192.168.77.36:5000";
 const UsuarioScreen = () => {
   const theme = useTheme();
   const [tickets, setTickets] = useState([]);
@@ -28,13 +28,13 @@ const UsuarioScreen = () => {
   const [activeTab, setActiveTab] = useState("tickets");
 
   const [ticketData, setTicketData] = useState({
-    idImpresora: "",
-    tipoDanio: "",
+    id_impresora: "",
+    tipo_danio: "",
     reporte: "",
     estado: "Pendiente",
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    modifiedAt: new Date().toISOString(),
+    is_active: true,
+    created_at: new Date().toISOString(),
+    modified_at: new Date().toISOString(),
   });
 
   useEffect(() => {
@@ -62,8 +62,10 @@ const UsuarioScreen = () => {
 
   const handleSave = async () => {
     try {
+          console.log("Datos enviados al servidor:", ticketData); // Verifica los datos
+
       if (editingTicket) {
-        await axios.put(`${API_URL}/tickets/${editingTicket._id}`, ticketData);
+        await axios.put(`${API_URL}/tickets/${editingTicket.id}`, ticketData);
       } else {
         await axios.post(`${API_URL}/tickets`, ticketData);
       }
@@ -71,13 +73,13 @@ const UsuarioScreen = () => {
       setVisible(false);
       setEditingTicket(null);
       setTicketData({
-        idImpresora: "",
-        tipoDanio: "",
+        id_impresora: "",
+        tipo_danio: "",
         reporte: "",
         estado: "Pendiente",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        modifiedAt: new Date().toISOString(),
+        is_active: true,
+        created_at: new Date().toISOString(),
+        modified_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Error al guardar ticket:", error);
@@ -88,7 +90,7 @@ const UsuarioScreen = () => {
     setEditingTicket(ticket);
     setTicketData({
       ...ticket,
-      modifiedAt: new Date().toISOString(),
+      modified_at: new Date().toISOString(),
     });
     setVisible(true);
   };
@@ -121,9 +123,9 @@ const UsuarioScreen = () => {
                 <View style={styles.ticketCard}>
                   <View style={styles.cardHeader}>
                     <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-                      {maquinas.find((m) => m._id === item.idImpresora?._id)?.impresora || "Desconocida"}
+                      {maquinas.find((m) => m._id === item.id_impresora?._id)?.impresora || "Desconocida"}
                     </Text>
-                    <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                    <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                   </View>
 
                   <View style={styles.statusContainer}>
@@ -142,7 +144,7 @@ const UsuarioScreen = () => {
                   </View>
 
                   <Chip mode="outlined" style={{ alignSelf: "flex-start", marginBottom: 8 }}>
-                    {item.tipoDanio}
+                    {item.tipo_danio}
                   </Chip>
 
                   <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }} numberOfLines={3}>
@@ -178,13 +180,13 @@ const UsuarioScreen = () => {
                 setVisible(false);
                 setEditingTicket(null);
                 setTicketData({
-                  idImpresora: "",
-                  tipoDanio: "",
+                  id_impresora: "",
+                  tipo_danio: "",
                   reporte: "",
                   estado: "Pendiente",
-                  isActive: true,
-                  createdAt: new Date().toISOString(),
-                  modifiedAt: new Date().toISOString(),
+                  is_active: true,
+                  created_at: new Date().toISOString(),
+                  modified_at: new Date().toISOString(),
                 });
               }}
               contentContainerStyle={styles.modalContainer}
@@ -196,24 +198,21 @@ const UsuarioScreen = () => {
               <Text style={{ marginBottom: 8 }}>Impresora:</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={ticketData.idImpresora._id}
-                  onValueChange={(value) =>
-                    setTicketData({ ...ticketData, idImpresora: value })
-                  }
-                  disabled
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecciona una impresora" value="" />
-                  {maquinas.map((m) => (
-                    <Picker.Item key={m._id} label={`${m.impresora} - ${m.noSerie}`} value={m._id} />
-                  ))}
-                </Picker>
+  selectedValue={ticketData.id_impresora} 
+  onValueChange={(val) => setTicketData({ ...ticketData, id_impresora: val })}disabled
+  style={{ backgroundColor: "#fff", marginBottom: 16 }}
+>
+  <Picker.Item label="Seleccione una impresora" value="" />
+  {maquinas.map((m) => (
+    <Picker.Item key={m.id} label={m.impresora} value={m.id} />
+  ))}
+</Picker>
               </View>
 
               <TextInput
                 label="Tipo de Daño"
-                value={ticketData.tipoDanio}
-                onChangeText={(text) => setTicketData({ ...ticketData, tipoDanio: text })}
+                value={ticketData.tipo_danio}
+                onChangeText={(text) => setTicketData({ ...ticketData, tipo_danio: text })}
                 style={{ marginBottom: 16 }}
                 disabled
               />
@@ -247,7 +246,7 @@ const UsuarioScreen = () => {
                 onPress={handleSave}
                 style={{ marginTop: 16 }}
                 disabled={
-                  !ticketData.idImpresora || !ticketData.tipoDanio || !ticketData.reporte
+                  !ticketData.id_impresora || !ticketData.tipo_danio || !ticketData.reporte
                 }
               >
                 {editingTicket ? "Actualizar" : "Crear"}

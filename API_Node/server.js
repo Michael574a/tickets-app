@@ -4,24 +4,23 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = 'Mi_Key_Prueba654321'; // Usa una clave segura en producción
-
+const SECRET_KEY = 'KeyPrueba654321';
 const app = express();
 const port = 5000;
 
-// Configuración de la conexión a PostgreSQL
+
 const pool = new Pool({
-  user: "postgres", // Cambia esto por tu usuario de PostgreSQL
+  user: "postgres", 
   host: "localhost",
-  database: "db_tickets", // Cambia esto por el nombre de tu base de datos
-  password: "1234", // Cambia esto por tu contraseña de PostgreSQL
+  database: "db_tickets", 
+  password: "1234",
   port: 5432,
 });
 
-// Middlewares
+
 app.use(cors());
 app.use(bodyParser.json());
-// Middleware para verificar el token
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -34,7 +33,7 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
-// Ruta para login
+
 app.post('/login', async (req, res) => {
   const { usuario, contraseña } = req.body;
   console.log('Datos recibidos:', req.body);
@@ -42,7 +41,7 @@ app.post('/login', async (req, res) => {
   
   try {
     const result = await pool.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario]);
-    console.log('Usuario encontrado:', result.rows[0]); // Verifica el usuario
+    console.log('Usuario encontrado:', result.rows[0]); 
     
     const user = result.rows[0];
     
@@ -83,7 +82,7 @@ app.post('/login', async (req, res) => {
 
 
 
-// Rutas para la tabla "maquinas"
+
 app.get("/maquinas", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM maquinas");
@@ -95,26 +94,26 @@ app.get("/maquinas", async (req, res) => {
 });
 
 app.post("/maquinas", async (req, res) => {
-  const { edificio, oficina, impresora, noSerie, estado, isActive } = req.body;
+  const { edificio, oficina, impresora, no_serie, estado, is_active } = req.body;
   try {
     const result = await pool.query(
       "INSERT INTO maquinas (edificio, oficina, impresora, no_serie, estado, is_active, created_at, modified_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *",
-      [edificio, oficina, impresora, noSerie, estado, isActive || true] // Valor por defecto si no viene
+      [edificio, oficina, impresora, no_serie, estado, is_active || true] 
     );
     res.json(result.rows[0]);
   } catch (error) {
     console.error("Error al crear máquina:", error);
     res.status(500).send("Error al crear máquina");
   }
-});
+}); 
 
 app.put("/maquinas/:id", async (req, res) => {
   const { id } = req.params;
-  const { edificio, oficina, impresora, noSerie, estado, isActive } = req.body;
+  const { edificio, oficina, impresora, no_serie, estado } = req.body; // Elimina is_active
   try {
     const result = await pool.query(
-      "UPDATE maquinas SET edificio = $1, oficina = $2, impresora = $3, no_serie = $4, estado = $5, is_active = $6, modified_at = NOW() WHERE id = $7 RETURNING *",
-      [edificio, oficina, impresora, noSerie, estado, isActive, id]
+      "UPDATE maquinas SET edificio = $1, oficina = $2, impresora = $3, no_serie = $4, estado = $5, is_active = True, modified_at = NOW() WHERE id = $6 RETURNING *",
+      [edificio, oficina, impresora, no_serie, estado, id] // Ajusta la lista de valores
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -143,7 +142,7 @@ app.delete("/tickets/:id", async (req, res) => {
     res.status(500).send("Error al eliminar ticket");
   }
 });
-// Rutas para la tabla "tickets"
+
 app.get("/tickets", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -158,11 +157,11 @@ app.get("/tickets", async (req, res) => {
   }
 });
 app.post("/tickets", async (req, res) => {
-  const { idImpresora, tipoDanio, reporte, estado, isActive } = req.body;
+  const { id_impresora, tipo_danio, reporte, estado, is_active } = req.body;
   try {
     const result = await pool.query(
-      "INSERT INTO tickets (id_impresora, tipo_danio, reporte, estado, is_active, created_at, modified_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *",
-      [idImpresora, tipoDanio, reporte, estado, isActive]
+      "INSERT INTO tickets (id_impresora, tipo_danio, reporte, estado, is_active, created_at, modified_at) VALUES ($1, $2, $3, $4, True, NOW(), NOW()) RETURNING *",
+      [id_impresora, tipo_danio, reporte, estado]
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -170,14 +169,29 @@ app.post("/tickets", async (req, res) => {
     res.status(500).send("Error al crear ticket");
   }
 });
+app.post('/register', async (req, res) => {
+  const { usuario, contraseña, rol } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(contraseña, 10);
+    const result = await pool.query(
+      'INSERT INTO usuarios (usuario, contraseña, rol) VALUES ($1, $2, $3) RETURNING *',
+      [usuario, hashedPassword, rol]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error al registrar usuario:', error);
+    res.status(500).json({ error: 'Error al registrar usuario' });
+  }
+});
 
 app.put("/tickets/:id", async (req, res) => {
   const { id } = req.params;
-  const { idImpresora, tipoDanio, reporte, estado, isActive } = req.body;
+  const { id_impresora, tipo_danio, reporte, estado } = req.body; // Elimina is_active
   try {
     const result = await pool.query(
-      "UPDATE tickets SET id_impresora = $1, tipo_danio = $2, reporte = $3, estado = $4, is_active = $5, modified_at = NOW() WHERE id = $6 RETURNING *",
-      [idImpresora, tipoDanio, reporte, estado, isActive, id]
+      "UPDATE tickets SET id_impresora = $1, tipo_danio = $2, reporte = $3, estado = $4, modified_at = NOW() WHERE id = $5 RETURNING *",
+      [id_impresora, tipo_danio, reporte, estado, id] // Ajusta la lista de valores
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -186,7 +200,6 @@ app.put("/tickets/:id", async (req, res) => {
   }
 });
 
-// Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });

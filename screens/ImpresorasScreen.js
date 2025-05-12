@@ -15,7 +15,7 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://localhost:5000";
+const API_URL = "http://192.168.77.36:5000";
 const ImpresorasScreen = () => {
   const theme = useTheme();
   const [impresoras, setImpresoras] = useState([]);
@@ -27,9 +27,9 @@ const ImpresorasScreen = () => {
     edificio: "",
     oficina: "",
     impresora: "",
-    noSerie: "",
+    no_serie: "",
     estado: "Operativa",
-    isActive: true,
+    is_active: true,
   });
 
   useEffect(() => {
@@ -77,9 +77,9 @@ const ImpresorasScreen = () => {
       edificio: impresora.edificio,
       oficina: impresora.oficina,
       impresora: impresora.impresora,
-      noSerie: impresora.noSerie,
+      no_serie: impresora.no_serie,
       estado: impresora.estado,
-      isActive: impresora.isActive,
+      is_active: impresora.is_active,
     });
     setVisible(true);
   };
@@ -87,7 +87,7 @@ const ImpresorasScreen = () => {
   const toggleStatus = async (id, currentStatus) => {
     try {
       await axios.put(`${API_URL}/maquinas/${id}`, {
-        isActive: !currentStatus,
+        is_active: !currentStatus,
         modifiedAt: new Date().toISOString(),
       });
       fetchImpresoras();
@@ -101,9 +101,9 @@ const ImpresorasScreen = () => {
       edificio: "",
       oficina: "",
       impresora: "",
-      noSerie: "",
+      no_serie: "",
       estado: "Operativa",
-      isActive: true,
+      is_active: true,
     });
   };
 
@@ -186,11 +186,11 @@ const ImpresorasScreen = () => {
                 </Text>
                 <Chip
                   style={styles.statusChip}
-                  icon={item.isActive ? "check-circle" : "alert-circle"}
+                  icon={item.is_active ? "check-circle" : "alert-circle"}
                   textStyle={{ color: "black" }}
                   mode="outlined"
                 >
-                  {item.isActive ? "Activa" : "Inactiva"}
+                  {item.is_active ? "Activa" : "Inactiva"}
                 </Chip>
               </View>
 
@@ -200,7 +200,7 @@ const ImpresorasScreen = () => {
               </Text>
 
               <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                <Icon name="barcode" size={16} /> {item.noSerie}
+                <Icon name="barcode" size={16} /> {item.no_serie}
               </Text>
 
               <Text style={{ color: theme.colors.onSurfaceVariant }}>
@@ -260,9 +260,9 @@ const ImpresorasScreen = () => {
 
             <TextInput
               label="Número de Serie"
-              value={impresoraData.noSerie}
+              value={impresoraData.no_serie}
               onChangeText={(text) =>
-                setImpresoraData({ ...impresoraData, noSerie: text })
+                setImpresoraData({ ...impresoraData, no_serie: text })
               }
               style={{ marginBottom: 16 }}
               left={<TextInput.Icon icon="barcode" />}
@@ -299,7 +299,7 @@ const ImpresorasScreen = () => {
                 !impresoraData.edificio ||
                 !impresoraData.oficina ||
                 !impresoraData.impresora ||
-                !impresoraData.noSerie
+                !impresoraData.no_serie
               }
             >
               {editingImpresora ? "Actualizar" : "Guardar"}

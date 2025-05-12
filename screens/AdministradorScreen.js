@@ -15,7 +15,7 @@ import {
 } from "react-native-paper";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://192.168.101.8:5000";
+const API_URL = "http://192.168.77.36:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
@@ -27,8 +27,8 @@ const AdministradorScreen = () => {
   const [editing, setEditing] = useState(null);
 
   const [formData, setFormData] = useState({
-    idImpresora: "",
-    tipoDanio: "",
+    id_impresora: "",
+    tipo_danio: "",
     reporte: "",
     estado: "Pendiente",
     isActive: true,
@@ -41,11 +41,11 @@ const AdministradorScreen = () => {
 
   const [formMaquina, setFormMaquina] = useState({
     impresora: "",
-    noSerie: "",
+    no_serie: "",
     edificio: "",
     oficina: "",
     estado: "Operativa",
-    isActive: true // Agregar este campo
+    isActive: true 
   });
 
   useEffect(() => {
@@ -82,11 +82,11 @@ const AdministradorScreen = () => {
       setVisible(false);
       setEditing(null);
       setFormData({
-        idImpresora: "",
-        tipoDanio: "",
+        id_impresora: "",
+        tipo_danio: "",
         reporte: "",
         estado: "Pendiente",
-        isActive: true,
+        isActive: True,
         createdAt: new Date().toISOString(),
         modifiedAt: new Date().toISOString(),
       });
@@ -94,18 +94,19 @@ const AdministradorScreen = () => {
     } catch (e) {
       console.error("Error al guardar:", e);
     }
+    fetchAll();
   };
 
  const handleSaveMaquina = async () => {
   try {
     const data = {
       ...formMaquina,
-      noSerie: formMaquina.noSerie, // Asegurar que el nombre del campo coincida
+      no_serie: formMaquina.no_serie, 
       isActive: formMaquina.isActive !== undefined ? formMaquina.isActive : true
     };
 
     if (editingMaquina) {
-      await axios.put(`${API_URL}/maquinas/${editingMaquina.id}`, data); // Cambiar _id por id
+      await axios.put(`${API_URL}/maquinas/${editingMaquina.id}`, data); 
     } else {
       await axios.post(`${API_URL}/maquinas`, data);
     }
@@ -114,7 +115,7 @@ const AdministradorScreen = () => {
     setEditingMaquina(null);
     setFormMaquina({
       impresora: "",
-      noSerie: "",
+      no_serie: "",
       edificio: "",
       oficina: "",
       estado: "Operativa",
@@ -140,7 +141,9 @@ const AdministradorScreen = () => {
   };
 
   const handleDelete = (id) => {
-    Alert.alert("Eliminar", "¿Deseas eliminar este registro?", [
+    if (Platform.OS === "android") {
+    
+    Alert.alert("Eliminar", "¿Deseas eliminar esta máquina?", [
       { text: "Cancelar" },
       {
         text: "Eliminar",
@@ -150,17 +153,32 @@ const AdministradorScreen = () => {
             await axios.delete(`${API_URL}/tickets/${id}`);
             fetchAll();
           } catch (e) {
-            console.error("Error al eliminar:", e);
+            console.error("Error al eliminar registro:", e);
+            Alert.alert("Error", "No se pudo eliminar el registro.");
           }
         },
       },
     ]);
+  } else {
+    
+    const confirmDelete = window.confirm("¿Deseas eliminar esta máquina?");
+    if (confirmDelete) {
+      (async () => {
+        try {
+          await axios.delete(`${API_URL}/tickets/${id}`);
+          fetchAll();
+        } catch (e) {
+          console.error("Error al eliminar este registro:", e);
+          alert("Error: No se pudo eliminar este registro.");
+        }
+      })();
+    }
   };
+  }
 
-  // Modificar handleDeleteMaquina para usar id en lugar de _id
 const handleDeleteMaquina = (id) => {
   if (Platform.OS === "android") {
-    // Mostrar el mensaje de confirmación en Android
+    
     Alert.alert("Eliminar", "¿Deseas eliminar esta máquina?", [
       { text: "Cancelar" },
       {
@@ -178,7 +196,7 @@ const handleDeleteMaquina = (id) => {
       },
     ]);
   } else {
-    // Mostrar el mensaje de confirmación en el navegador
+    
     const confirmDelete = window.confirm("¿Deseas eliminar esta máquina?");
     if (confirmDelete) {
       (async () => {
@@ -191,10 +209,11 @@ const handleDeleteMaquina = (id) => {
         }
       })();
     }
+    
   }
 };
 const formatDate = (dateString) => {
-  // Si la fecha ya es un objeto Date (puede venir así en algunos casos)
+  
   if (dateString instanceof Date) {
     return dateString.toLocaleDateString("es-ES", {
       year: "numeric",
@@ -205,13 +224,12 @@ const formatDate = (dateString) => {
     });
   }
 
-  // Manejar el formato de PostgreSQL (2024-05-09 14:39:05.944165)
+  
   if (typeof dateString === 'string') {
-    // Eliminar los milisegundos si existen
+    
     const cleanedDate = dateString.split('.')[0];
     const date = new Date(cleanedDate);
-    
-    // Verificar si la fecha es válida
+  
     if (!isNaN(date.getTime())) {
       return date.toLocaleDateString("es-ES", {
         year: "numeric",
@@ -223,7 +241,7 @@ const formatDate = (dateString) => {
     }
   }
 
-  // Si no se puede parsear, mostrar un mensaje alternativo
+  
   return "Fecha no disponible";
 };
 
@@ -285,7 +303,7 @@ const formatDate = (dateString) => {
                     <Text>{formatDate(item.created_at)}</Text>
                   </View>
 
-                  <Chip style={{ marginBottom: 8 }}>{item.tipoDanio}</Chip>
+                  <Chip style={{ marginBottom: 8 }}>{item.tipo_danio}</Chip>
                   <Text>{item.reporte}</Text>
                   <Text style={{ marginTop: 6 }}>
                     Estado: <Text style={{ fontWeight: "bold" }}>{item.estado}</Text>
@@ -311,7 +329,7 @@ const formatDate = (dateString) => {
               renderItem={({ item }) => (
                 <View style={styles.card}>
                   <Text variant="titleMedium">{item.impresora}</Text>
-                  <Text>Serie: {item.noSerie}</Text>
+                  <Text>Serie: {item.no_serie}</Text>
                   <Text>
                     {item.edificio} - {item.oficina}
                   </Text>
@@ -339,8 +357,8 @@ const formatDate = (dateString) => {
 
             <Text style={{ marginBottom: 8 }}>Impresora:</Text>
             <Picker
-              selectedValue={formData.idImpresora?.id || formData.idImpresora}
-              onValueChange={(val) => setFormData({ ...formData, idImpresora: val })}
+              selectedValue={formData.id_impresora?.id || formData.id_impresora}
+              onValueChange={(val) => setFormData({ ...formData, id_impresora: val })}
               style={{ backgroundColor: "#fff", marginBottom: 16 }}
             >
               <Picker.Item label="Seleccione una impresora" value="" />
@@ -351,8 +369,8 @@ const formatDate = (dateString) => {
 
             <TextInput
               label="Tipo de Daño"
-              value={formData.tipoDanio}
-              onChangeText={(text) => setFormData({ ...formData, tipoDanio: text })}
+              value={formData.tipo_danio}
+              onChangeText={(text) => setFormData({ ...formData, tipo_danio: text })}
               style={{ marginBottom: 16 }}
             />
 
@@ -375,7 +393,7 @@ const formatDate = (dateString) => {
               <Picker.Item label="Resuelto" value="Resuelto" />
             </Picker>
 
-            <Button mode="contained" onPress={handleSave} disabled={!formData.idImpresora || !formData.tipoDanio || !formData.reporte}>
+            <Button mode="contained" onPress={handleSave} disabled={!formData.id_impresora || !formData.tipo_danio || !formData.reporte}>
               {editing ? "Actualizar" : "Guardar"}
             </Button>
           </Modal>
@@ -394,8 +412,8 @@ const formatDate = (dateString) => {
 
             <TextInput
               label="Número de Serie"
-              value={formMaquina.noSerie}
-              onChangeText={(text) => setFormMaquina({ ...formMaquina, noSerie: text })}
+              value={formMaquina.no_serie}
+              onChangeText={(text) => setFormMaquina({ ...formMaquina, no_serie: text })}
               style={{ marginBottom: 16 }}
             />
 
@@ -424,7 +442,7 @@ const formatDate = (dateString) => {
               <Picker.Item label="Fuera de servicio" value="Fuera de servicio" />
             </Picker>
 
-            <Button mode="contained" onPress={handleSaveMaquina} disabled={!formMaquina.impresora || !formMaquina.noSerie || !formMaquina.edificio || !formMaquina.oficina}>
+            <Button mode="contained" onPress={handleSaveMaquina} disabled={!formMaquina.impresora || !formMaquina.no_serie || !formMaquina.edificio || !formMaquina.oficina}>
               {editingMaquina ? "Actualizar" : "Guardar"}
             </Button>
           </Modal>
