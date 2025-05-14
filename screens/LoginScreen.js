@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
-const API_URL = "http://192.168.77.36:5000";
+const API_URL = "http://localhost:5000";
 
 export default function LoginScreen({ navigation }) {
   const [usuario, setUsuario] = useState('');

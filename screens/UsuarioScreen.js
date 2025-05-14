@@ -18,7 +18,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import ImpresorasScreen from "./ImpresorasScreen";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://192.168.77.36:5000";
+const API_URL = "http://localhost:5000";
 const UsuarioScreen = () => {
   const theme = useTheme();
   const [tickets, setTickets] = useState([]);

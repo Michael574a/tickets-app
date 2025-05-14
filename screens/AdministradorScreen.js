@@ -15,7 +15,7 @@ import {
 } from "react-native-paper";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://192.168.77.36:5000";
+const API_URL = "http://localhost:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
@@ -212,6 +212,95 @@ const handleDeleteMaquina = (id) => {
     
   }
 };
+
+const [usuarios, setUsuarios] = useState([]);
+const [visibleUsuario, setVisibleUsuario] = useState(false);
+const [editingUsuario, setEditingUsuario] = useState(null);
+
+const [formUsuario, setFormUsuario] = useState({
+  usuario: "",
+  contraseña: "",
+  rol: "tecnico",
+});
+
+// Fetch usuarios
+useEffect(() => {
+  if (tab === "usuarios") fetchUsuarios();
+}, [tab]);
+
+const fetchUsuarios = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/usuarios`);
+    setUsuarios(res.data);
+  } catch (e) {
+    console.error("Error al cargar usuarios:", e);
+  }
+};
+
+const handleSaveUsuario = async () => {
+  try {
+    const data = { ...formUsuario };
+
+    if (editingUsuario) {
+      await axios.put(`${API_URL}/usuarios/${editingUsuario.id}`, data);
+    } else {
+      await axios.post(`${API_URL}/usuarios`, data);
+    }
+
+    setVisibleUsuario(false);
+    setEditingUsuario(null);
+    setFormUsuario({ usuario: "", contraseña: "", rol: "tecnico" });
+    fetchUsuarios();
+  } catch (e) {
+    console.error("Error al guardar usuario:", e);
+    Alert.alert("Error", "No se pudo guardar el usuario. Verifique los datos.");
+  }
+};
+
+const handleEditUsuario = (item) => {
+  setEditingUsuario(item);
+  setFormUsuario({ usuario: item.usuario, contraseña: "", rol: item.rol });
+  setVisibleUsuario(true);
+};
+
+const handleDeleteUsuario = (id) => {
+  if (Platform.OS === "android") {
+    
+   Alert.alert("Eliminar", "¿Deseas eliminar este usuario?", [
+    { text: "Cancelar" },
+    {
+      text: "Eliminar",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          await axios.delete(`${API_URL}/usuarios/${id}`);
+          fetchUsuarios();
+        } catch (e) {
+          console.error("Error al eliminar usuario:", e);
+          Alert.alert("Error", "No se pudo eliminar el usuario.");
+        }
+      },
+    },
+  ]);
+  } else {
+    
+    const confirmDelete = window.confirm("¿Deseas eliminar este usuario?");
+    if (confirmDelete) {
+      (async () => {
+        try {
+          await axios.delete(`${API_URL}/usuarios/${id}`);
+          fetchAll();
+        } catch (e) {
+          console.error("Error al eliminar usuario:", e);
+          alert("Error: No se pudo eliminar el usuario.");
+        }
+      })();
+    }
+    
+  }
+  
+};
+
 const formatDate = (dateString) => {
   
   if (dateString instanceof Date) {
@@ -268,6 +357,13 @@ const formatDate = (dateString) => {
             >
               Máquinas
             </Button>
+            <Button
+              mode={tab === "usuarios" ? "contained" : "outlined"}
+              onPress={() => setTab("usuarios")}
+              style={{ marginLeft: 8 }}
+            >
+              Usuarios
+            </Button>
           </View>
 
           <View style={styles.addButtons}>
@@ -286,6 +382,15 @@ const formatDate = (dateString) => {
                 onPress={() => setVisibleMaquina(true)}
               >
                 Nueva Máquina
+              </Button>
+            )}
+            {tab === "usuarios" && (
+              <Button
+                mode="contained"
+                onPress={() => setVisibleUsuario(true)}
+                style={{ marginRight: 8 }}
+              >
+                Nuevo Usuario
               </Button>
             )}
           </View>
@@ -340,6 +445,27 @@ const formatDate = (dateString) => {
                       Editar
                     </Button>
                     <Button icon="delete" mode="text" onPress={() => handleDeleteMaquina(item.id)} textColor="red">
+                      Eliminar
+                    </Button>
+                  </View>
+                </View>
+              )}
+            />
+          )}
+
+          {tab === "usuarios" && (
+            <FlatList
+              data={usuarios}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.card}>
+                  <Text variant="titleMedium">{item.usuario}</Text>
+                  <Text>Rol: {item.rol}</Text>
+                  <View style={[styles.row, { marginTop: 10 }]}>
+                    <Button icon="pencil" mode="outlined" onPress={() => handleEditUsuario(item)}>
+                      Editar
+                    </Button>
+                    <Button icon="delete" mode="text" onPress={() => handleDeleteUsuario(item.id)} textColor="red">
                       Eliminar
                     </Button>
                   </View>
@@ -444,6 +570,43 @@ const formatDate = (dateString) => {
 
             <Button mode="contained" onPress={handleSaveMaquina} disabled={!formMaquina.impresora || !formMaquina.no_serie || !formMaquina.edificio || !formMaquina.oficina}>
               {editingMaquina ? "Actualizar" : "Guardar"}
+            </Button>
+          </Modal>
+        </Portal>
+
+        <Portal>
+          <Modal visible={visibleUsuario} onDismiss={() => { setVisibleUsuario(false); setEditingUsuario(null); }} contentContainerStyle={styles.modal}>
+            <Text variant="titleMedium" style={{ marginBottom: 16 }}>
+              {editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
+            </Text>
+
+            <TextInput
+              label="Usuario"
+              value={formUsuario.usuario}
+              onChangeText={(text) => setFormUsuario({ ...formUsuario, usuario: text })}
+              style={{ marginBottom: 16 }}
+            />
+
+            <TextInput
+              label="Contraseña"
+              value={formUsuario.contraseña}
+              secureTextEntry
+              onChangeText={(text) => setFormUsuario({ ...formUsuario, contraseña: text })}
+              style={{ marginBottom: 16 }}
+            />
+
+            <Text style={{ marginBottom: 8 }}>Rol:</Text>
+            <Picker
+              selectedValue={formUsuario.rol}
+              onValueChange={(val) => setFormUsuario({ ...formUsuario, rol: val })}
+              style={{ backgroundColor: "#fff", marginBottom: 16 }}
+            >
+              <Picker.Item label="Técnico" value="tecnico" />
+              <Picker.Item label="Administrador" value="administrador" />
+            </Picker>
+
+            <Button mode="contained" onPress={handleSaveUsuario} disabled={!formUsuario.usuario || !formUsuario.contraseña}>
+              {editingUsuario ? "Actualizar" : "Guardar"}
             </Button>
           </Modal>
         </Portal>

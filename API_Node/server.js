@@ -18,9 +18,11 @@ const pool = new Pool({
 });
 
 
+
 app.use(cors());
 app.use(bodyParser.json());
-
+//app.use(authenticateToken);
+//app.use(setDatabaseUser);
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -37,8 +39,6 @@ function authenticateToken(req, res, next) {
 app.post('/login', async (req, res) => {
   const { usuario, contraseña } = req.body;
   console.log('Datos recibidos:', req.body);
-    
-  
   try {
     const result = await pool.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario]);
     console.log('Usuario encontrado:', result.rows[0]); 
@@ -49,37 +49,46 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuario no encontrado' });
     }
     
-    // console.log('Comparando contraseña:', contraseña, 'con hash:', user.contraseña);
-    // const validPassword = await bcrypt.compare(contraseña, user.contraseña);
-    // console.log('Resultado comparación:', validPassword);
-    
-    // if (!validPassword) {
-    //   return res.status(401).json({ error: 'Contraseña incorrecta' });
-    // }
-    if (contraseña === user.contraseña) {
-  console.log("Contraseña correcta");
-} else {
-  return res.status(401).json({ error: "Contraseña incorrecta" });
-}
-    
-    // if (!user.is_active) {
-    //   return res.status(403).json({ error: 'Cuenta desactivada' });
-    // }
-    
+     console.log('Comparando contraseña:', contraseña, 'con hash:', user.contraseña);
+     const validPassword = await bcrypt.compare(contraseña, user.contraseña);
+     console.log('Resultado comparación:', validPassword);
+     if (!validPassword) {
+       return res.status(401).json({ error: 'Contraseña incorrecta' });
+     }
     const token = jwt.sign(
       { id: user.id, usuario: user.usuario, rol: user.rol },
       SECRET_KEY,
       { expiresIn: '8h' }
     );
     
-    res.json({ token, rol: user.rol });
+    // 4. Responder con token y datos básicos (sin contraseña)
+    res.json({
+      token,
+      usuario: {
+        id: user.id,
+        nombre: user.usuario,
+        rol: user.rol
+      }
+    });
     
   } catch (error) {
     console.error('Error en login:', error);
-    res.status(500).json({ error: 'Error en el servidor' });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
+async function setDatabaseUser(req, res, next) {
+  try {
+    const userToken = req.headers.authorization?.split(' ')[1];
+    if (userToken) {
+      const decoded = jwt.verify(userToken, SECRET_KEY);
+      // Establecer el usuario actual para PostgreSQL
+      await pool.query(`SET app.current_user = '${decoded.usuario}'`);
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+}
 
 
 
@@ -197,6 +206,63 @@ app.put("/tickets/:id", async (req, res) => {
   } catch (error) {
     console.error("Error al actualizar ticket:", error);
     res.status(500).send("Error al actualizar ticket");
+  }
+});
+
+app.get("/usuarios", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, usuario, rol, created_at, modified_at FROM usuarios");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error al obtener usuarios:", error);
+    res.status(500).send("Error al obtener usuarios");
+  }
+});
+
+app.post("/usuarios", async (req, res) => {
+  const { usuario, contraseña, rol } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(contraseña, 10);
+    const result = await pool.query(
+      "INSERT INTO usuarios (usuario, contraseña, rol, created_at, modified_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, usuario, rol",
+      [usuario, hashedPassword, rol]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error al crear usuario:", error);
+    res.status(500).send("Error al crear usuario");
+  }
+});
+
+app.put("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  const { usuario, contraseña, rol } = req.body;
+  try {
+    const hashedPassword = contraseña ? await bcrypt.hash(contraseña, 10) : undefined;
+    const result = await pool.query(
+      `UPDATE usuarios SET 
+        usuario = $1, 
+        ${contraseña ? "contraseña = $2," : ""} 
+        rol = $3, 
+        modified_at = NOW() 
+      WHERE id = $4 RETURNING id, usuario, rol`,
+      contraseña ? [usuario, hashedPassword, rol, id] : [usuario, rol, id]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).send("Error al actualizar usuario");
+  }
+});
+
+app.delete("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
+    res.json({ message: "Usuario eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).send("Error al eliminar usuario");
   }
 });
 
