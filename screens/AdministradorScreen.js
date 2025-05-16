@@ -21,7 +21,7 @@ import { Row, Table } from "react-native-table-component";
 import * as XLSX from 'xlsx';
 
 // Define API URL based on platform
-const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000";
+const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://192.168.101.8:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
@@ -415,7 +415,14 @@ const AdministradorScreen = () => {
       Alert.alert("Error", "No se pudo guardar la máquina. Verifique los datos.");
     }
   };
-
+const fetchUsuarios = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/usuarios`);
+    setUsuarios(res.data);
+  } catch (e) {
+    console.error("Error al cargar usuarios:", e);
+  }
+};
   const handleSaveUsuario = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -608,7 +615,7 @@ const AdministradorScreen = () => {
       <View style={{ flex: 1 }}>
         <Appbar.Header>
           <Appbar.Content title="Administración de Tickets y Máquinas" />
-          <Appbar.Content title="Gestión de Tickets y Máquinas" />
+          
           {tab === "tickets" && (
             <Appbar.Action icon="refresh" onPress={fetchAll} />
           )}
@@ -819,49 +826,99 @@ const AdministradorScreen = () => {
           {tab === "auditorias" && (
             <View style={{ flex: 1 }}>
               {auditLogs.length > 0 ? (
-                <ScrollView style={styles.scrollView}>
-                  <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
-                    <Row
-                      data={['ID', 'Nombre', 'Acción', 'Rol', 'Resumen', 'Fecha y Hora']}
-                      style={styles.header}
-                      textStyle={styles.headerText}
-                      flexArr={[1, 1.5, 2, 1, 3, 2]}
-                    />
-                    {tableData.map((item, index) => (
-                      <View key={item.id}>
+                Platform.OS === "web" ? (
+                  // Web: Scroll vertical como antes
+                  <ScrollView style={styles.scrollView}>
+                    <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
+                      <Row
+                        data={['ID', 'Usuario', 'Acción', 'Rol', 'Resumen', 'Fecha y Hora']}
+                        style={styles.header}
+                        textStyle={styles.headerText}
+                        flexArr={[1, 1.5, 2, 1, 3, 2]}
+                      />
+                      {tableData.map((item, index) => (
+                        <View key={item.id}>
+                          <Row
+                            data={[
+                              item.id,
+                              item.userName,
+                              item.action,
+                              item.role,
+                              <View style={styles.summaryContainer}>
+                                <Text style={styles.summaryText}>{item.summary}</Text>
+                                <Button
+                                  mode="text"
+                                  onPress={() => toggleRowExpansion(item.id)}
+                                  style={styles.detailsButton}
+                                >
+                                  {expandedRows[item.id] ? "Ocultar Detalles" : "Mostrar Detalles"}
+                                </Button>
+                              </View>,
+                              item.timestamp,
+                            ]}
+                            textStyle={styles.text}
+                            flexArr={[1, 1.5, 2, 1, 3, 2]}
+                          />
+                          {expandedRows[item.id] && (
+                            <View style={styles.expandedRow}>
+                              {renderDetailsTable(item.details, {
+                                action: auditLogs[index].action,
+                                resource_id: auditLogs[index].resource_id,
+                              })}
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </Table>
+                  </ScrollView>
+                ) : (
+                  // Android/iOS: Scroll horizontal + vertical
+                  <ScrollView horizontal style={{ flex: 1 }}>
+                    <ScrollView style={styles.scrollView}>
+                      <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
                         <Row
-                          data={[
-                            item.id,
-                            item.userName,
-                            item.action,
-                            item.role,
-                            <View style={styles.summaryContainer}>
-                              <Text style={styles.summaryText}>{item.summary}</Text>
-                              <Button
-                                mode="text"
-                                onPress={() => toggleRowExpansion(item.id)}
-                                style={styles.detailsButton}
-                              >
-                                {expandedRows[item.id] ? "Ocultar Detalles" : "Mostrar Detalles"}
-                              </Button>
-                            </View>,
-                            item.timestamp,
-                          ]}
-                          textStyle={styles.text}
+                          data={['ID', 'Usuario', 'Acción', 'Rol', 'Resumen', 'Fecha y Hora']}
+                          style={styles.header}
+                          textStyle={styles.headerText}
                           flexArr={[1, 1.5, 2, 1, 3, 2]}
                         />
-                        {expandedRows[item.id] && (
-                          <View style={styles.expandedRow}>
-                            {renderDetailsTable(item.details, {
-                              action: auditLogs[index].action,
-                              resource_id: auditLogs[index].resource_id,
-                            })}
+                        {tableData.map((item, index) => (
+                          <View key={item.id}>
+                            <Row
+                              data={[
+                                item.id,
+                                item.userName,
+                                item.action,
+                                item.role,
+                                <View style={styles.summaryContainer}>
+                                  <Text style={styles.summaryText}>{item.summary}</Text>
+                                  <Button
+                                    mode="text"
+                                    onPress={() => toggleRowExpansion(item.id)}
+                                    style={styles.detailsButton}
+                                  >
+                                    {expandedRows[item.id] ? "Ocultar Detalles" : "Mostrar Detalles"}
+                                  </Button>
+                                </View>,
+                                item.timestamp,
+                              ]}
+                              textStyle={styles.text}
+                              flexArr={[1, 1.5, 2, 1, 3, 2]}
+                            />
+                            {expandedRows[item.id] && (
+                              <View style={styles.expandedRow}>
+                                {renderDetailsTable(item.details, {
+                                  action: auditLogs[index].action,
+                                  resource_id: auditLogs[index].resource_id,
+                                })}
+                              </View>
+                            )}
                           </View>
-                        )}
-                      </View>
-                    ))}
-                  </Table>
-                </ScrollView>
+                        ))}
+                      </Table>
+                    </ScrollView>
+                  </ScrollView>
+                )
               ) : (
                 <Text style={styles.emptyText}>No hay auditorías disponibles.</Text>
               )}

@@ -19,20 +19,20 @@ export default function LoginScreen({ navigation }) {
     try {
       const response = await axios.post(`${API_URL}/login`, {
         usuario,
-        contraseña
+        contraseña, // <-- Agrega esta línea
       });
-
+      
       await AsyncStorage.setItem('userToken', response.data.token);
-
+      
       // Verificar el rol dentro de response.data.usuario
       if (response.data.usuario.rol === 'administrador') {
         navigation.navigate('AdministradorScreen');
       } else {
         navigation.navigate('UsuarioScreen');
       }
-
+      
     } catch (err) {
-      console.log('Error completo:', err);
+      console.log('Error completo:', err); 
       setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   title: { marginBottom: 30, textAlign: 'center' },
   input: { marginBottom: 15 },
   button: { marginTop: 10 },
-  error: { color: 'red', marginBottom: 15, textAlign: 'center' }
+  error: { color: 'red', marginBottom: 15, textAlign: 'center' },
+  link: { marginTop: 10, textAlign: 'center' },
 });
 
 

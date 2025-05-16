@@ -14,7 +14,7 @@ const pool = new Pool({
   user: "postgres",
   host: "localhost",
   database: "db_tickets",
-  password: "2004Jd20",
+  password: "1234",
   port: 5432,
 });
 
@@ -269,36 +269,47 @@ app.get("/audit-logs/export/pdf", authenticateToken, async (req, res) => {
       FROM audit_logs al
       ORDER BY timestamp DESC
     `);
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
     res.setHeader("Content-Disposition", `attachment; filename="audit_logs_${new Date().toISOString().split('T')[0]}.pdf"`);
     res.setHeader("Content-Type", "application/pdf");
     doc.pipe(res);
-    doc.fontSize(16).text("Reporte de Auditorías", { align: "center" });
-    doc.moveDown();
+
+    // Título
+    doc.fontSize(18).text("Reporte de Auditorías", { align: "center" });
+    doc.moveDown(0.5);
     doc.fontSize(12).text(`Fecha de generación: ${new Date().toLocaleString('es-ES')}`, { align: "center" });
-    doc.moveDown();
-    result.rows.forEach((log, index) => {
-      const actionText = log.action === "create" ? "Creó" : log.action === "update" ? "Actualizó" : "Eliminó";
-      const resourceArticle = log.resource === "maquinas" ? "una" : log.resource === "tickets" ? "un" : "un";
-      const details = log.details
-        ? typeof log.details === "string"
-          ? JSON.parse(log.details)
-          : log.details
-        : {};
-      const detailsText =
-        log.action === "create"
-          ? `Creó ${resourceArticle} ${log.resource} con el ID: ${log.resource_id || "Desconocido"}. Datos nuevos: ${JSON.stringify(details.new_data || {})}`
-          : log.action === "update"
-          ? `Actualizó ${resourceArticle} ${log.resource} con el ID: ${log.resource_id || "Desconocido"}. Datos antiguos: ${JSON.stringify(details.old_data || {})}, Datos nuevos: ${JSON.stringify(details.new_data || {})}`
-          : `Eliminó ${resourceArticle} ${log.resource} con el ID: ${log.resource_id || "Desconocido"}. Datos eliminados: ${JSON.stringify(details.old_data || {})}`;
-      doc.text(`ID: ${log.id}`);
-      doc.text(`Usuario: ${log.user_name}`);
-      doc.text(`Rol: ${log.rol}`);
-      doc.text(`Acción: ${actionText}`);
-      doc.text(`Detalles: ${detailsText}`);
-      doc.text(`Fecha: ${new Date(log.timestamp).toLocaleString('es-ES')}`);
-      if (index < result.rows.length - 1) doc.moveDown();
+    doc.moveDown(1.5);
+
+    // Encabezados de tabla
+    const tableHeaders = [
+      "ID", "Usuario", "Rol", "Acción", "Recurso", "ID Recurso", "Fecha y Hora"
+    ];
+    const startX = doc.x;
+    let y = doc.y;
+
+    // Dibuja encabezados
+    tableHeaders.forEach((header, i) => {
+      doc.font('Helvetica-Bold').fontSize(10).text(header, startX + i * 100, y, { width: 100, align: 'center' });
     });
+    y += 20;
+    doc.moveTo(startX, y - 5).lineTo(startX + tableHeaders.length * 100, y - 5).stroke();
+
+    // Dibuja filas
+    result.rows.forEach((log) => {
+      const actionText = log.action === "create" ? "Creó" : log.action === "update" ? "Actualizó" : "Eliminó";
+      doc.font('Helvetica').fontSize(9)
+        .text(log.id, startX + 0, y, { width: 100, align: 'center' })
+        .text(log.user_name, startX + 100, y, { width: 100, align: 'center' })
+        .text(log.rol, startX + 200, y, { width: 100, align: 'center' })
+        .text(actionText, startX + 300, y, { width: 100, align: 'center' })
+        .text(log.resource, startX + 400, y, { width: 100, align: 'center' })
+        .text(log.resource_id, startX + 500, y, { width: 100, align: 'center' })
+        .text(new Date(log.timestamp).toLocaleString('es-ES'), startX + 600, y, { width: 120, align: 'center' });
+      y += 18;
+
+      // Si quieres agregar detalles como subtabla, puedes hacerlo aquí (opcional)
+    });
+
     doc.end();
   } catch (error) {
     console.error("Error al generar PDF:", error);
