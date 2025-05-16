@@ -112,6 +112,9 @@ const UsuarioScreen = () => {
         <StatusBar style={theme.dark ? "light" : "dark"} />
         <Appbar.Header>
           <Appbar.Content title="Gestión de Tickets" />
+          {activeTab === "tickets" && (
+            <Appbar.Action icon="refresh" onPress={fetchTickets} />
+          )}
         </Appbar.Header>
 
         <View style={styles.content}>

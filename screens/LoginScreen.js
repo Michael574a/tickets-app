@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
-const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000"; // Ajusta la IP
+const API_URL = "http://192.168.101.8:5000";
 
 export default function LoginScreen({ navigation }) {
   const [usuario, setUsuario] = useState('');
@@ -19,21 +19,21 @@ export default function LoginScreen({ navigation }) {
     try {
       const response = await axios.post(`${API_URL}/login`, {
         usuario,
-        contraseña,
+        contraseña
       });
 
-      const { token } = response.data;
-      await AsyncStorage.setItem('userToken', token);
-      console.log('Token guardado exitosamente:', token);
+      await AsyncStorage.setItem('userToken', response.data.token);
 
+      // Verificar el rol dentro de response.data.usuario
       if (response.data.usuario.rol === 'administrador') {
         navigation.navigate('AdministradorScreen');
       } else {
         navigation.navigate('UsuarioScreen');
       }
+
     } catch (err) {
-      console.log('Error completo:', err.response ? err.response.data : err.message);
-      setError(err.response?.data?.error || 'Error al iniciar sesión. Verifique sus credenciales.');
+      console.log('Error completo:', err);
+      setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -41,6 +41,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      
       <Text variant="headlineMedium" style={styles.title}>Inicio de Sesión</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -70,13 +71,7 @@ export default function LoginScreen({ navigation }) {
       >
         Ingresar
       </Button>
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('RegistroScreen')}
-        style={styles.link}
-      >
-        ¿No tienes una cuenta? Regístrate
-      </Button>
+      
     </View>
   );
 }
@@ -86,6 +81,8 @@ const styles = StyleSheet.create({
   title: { marginBottom: 30, textAlign: 'center' },
   input: { marginBottom: 15 },
   button: { marginTop: 10 },
-  error: { color: 'red', marginBottom: 15, textAlign: 'center' },
-  link: { marginTop: 10, textAlign: 'center' },
+  error: { color: 'red', marginBottom: 15, textAlign: 'center' }
 });
+
+
+

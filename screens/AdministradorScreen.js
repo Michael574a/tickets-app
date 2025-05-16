@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from "react";
 import { Alert, Dimensions, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -16,6 +18,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { Row, Table } from "react-native-table-component";
+import * as XLSX from 'xlsx';
 
 // Define API URL based on platform
 const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000";
@@ -534,11 +537,87 @@ const AdministradorScreen = () => {
     setVisibleUsuario(true);
   };
 
+  const exportTicketsToExcel = async () => {
+    try {
+      // Prepara los datos con la fecha de creación
+      const data = tickets.map(ticket => ({
+        "ID Ticket": ticket.id,
+        "Nombre impresora": ticket.impresora_nombre || "",
+        "Tipo de Daño": ticket.tipo_danio,
+        "Reporte": ticket.reporte,
+        "Estado": ticket.estado,
+        "Fecha de Creación": formatDate(ticket.created_at),
+      }));
+
+      // Crea la hoja y el libro
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Tickets");
+
+      // Convierte a base64
+      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+
+      // Detecta plataforma
+      if (Platform.OS === "android") {
+        // Guarda el archivo en el almacenamiento externo (Downloads)
+        const fileName = "reporte_tickets.xlsx";
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        await FileSystem.writeAsStringAsync(fileUri, wbout, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Intenta compartir el archivo (abre menú de compartir, que incluye guardar en archivos)
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          dialogTitle: "Compartir o guardar reporte de tickets",
+          UTI: "com.microsoft.excel.xlsx",
+        });
+
+        Alert.alert(
+          "Reporte generado",
+          "El archivo Excel se ha generado. Si deseas guardarlo, selecciona la opción adecuada en el menú."
+        );
+      } else if (Platform.OS === "web") {
+          // Convierte el archivo a un Blob y crea un enlace de descarga
+          const wbout = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+          const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "reporte_tickets.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          return;
+        }else {
+        Alert.alert(
+          "No soportado",
+          "La descarga de archivos Excel solo está disponible en Android."
+        );
+      }
+    } catch (e) {
+      Alert.alert("Error", "No se pudo generar el reporte.");
+      console.error(e);
+    }
+  };
+
   return (
     <Provider theme={theme}>
       <View style={{ flex: 1 }}>
         <Appbar.Header>
           <Appbar.Content title="Administración de Tickets y Máquinas" />
+          <Appbar.Content title="Gestión de Tickets y Máquinas" />
+          {tab === "tickets" && (
+            <Appbar.Action icon="refresh" onPress={fetchAll} />
+          )}
+          {tab === "maquinas" && (
+            <Appbar.Action icon="refresh" onPress={fetchAll} />
+          )}
+          {tab === "usuarios" && (
+            <Appbar.Action icon="refresh" onPress={fetchUsuarios} />
+          )}
         </Appbar.Header>
 
         <View style={styles.container}>
@@ -613,6 +692,16 @@ const AdministradorScreen = () => {
                 <Menu.Item onPress={handleExportPDF} title="Exportar a PDF" />
                 <Menu.Item onPress={handleExportExcel} title="Exportar a Excel" />
               </Menu>
+            )}
+            {tab === "tickets" && (
+              <Button
+                mode="outlined"
+                icon="file-excel"
+                onPress={exportTicketsToExcel}
+                style={{ marginLeft: 8 }}
+              >
+                Reporte Tickets
+              </Button>
             )}
           </View>
 
