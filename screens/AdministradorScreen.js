@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Alert, Dimensions, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -16,9 +16,10 @@ import {
   useTheme,
 } from "react-native-paper";
 import { Row, Table } from "react-native-table-component";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 // Define API URL based on platform
-const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000";
+const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://192.168.1.107:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
@@ -625,39 +626,44 @@ const AdministradorScreen = () => {
               data={tickets}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <View style={styles.row}>
+                <View style={styles.ticketCard}>
+                  <View style={styles.cardHeader}>
                     <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
                       {item.impresora_nombre || "Desconocida"}
                     </Text>
-                    <Text>{formatDate(item.created_at)}</Text>
+                    <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                   </View>
-                  <Chip style={{ marginBottom: 8 }}>{item.tipo_danio || "Sin tipo de daño"}</Chip>
-                  <Text>{item.reporte || "Sin reporte"}</Text>
+                  <Chip style={{ alignSelf: "flex-start", marginBottom: 8 }} mode="outlined">
+                    {item.tipo_danio || "Sin tipo de daño"}
+                  </Chip>
+                  <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }} numberOfLines={3}>
+                    {item.reporte || "Sin reporte"}
+                  </Text>
                   <Text style={{ marginTop: 6 }}>
                     Estado: <Text style={{ fontWeight: "bold" }}>{item.estado || "Sin estado"}</Text>
                   </Text>
                   <View style={[styles.row, { marginTop: 10 }]}>
                     <Button
-                      icon="pencil"
                       mode="outlined"
                       onPress={() => handleEdit(item)}
                       style={{ marginRight: 8 }}
+                      icon={() => <Icon name="pencil" size={16} />}
+                      compact
                     >
                       Editar
                     </Button>
                     <Button
-                      icon="delete"
                       mode="text"
                       onPress={() => handleDelete(item.id)}
                       textColor="red"
+                      icon={() => <Icon name="delete" size={16} />}
                     >
                       Eliminar
                     </Button>
                   </View>
                 </View>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>No hay tickets disponibles.</Text>}
+              ListEmptyComponent={<Text>No hay tickets disponibles.</Text>}
             />
           )}
 
@@ -666,32 +672,41 @@ const AdministradorScreen = () => {
               data={maquinas}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <Text variant="titleMedium">{item.impresora || "Sin nombre"}</Text>
-                  <Text>Serie: {item.no_serie || "Sin número de serie"}</Text>
-                  <Text>{item.edificio || "Sin edificio"} - {item.oficina || "Sin oficina"}</Text>
-                  <Text>Estado: {item.estado || "Sin estado"}</Text>
+                <View style={styles.ticketCard}>
+                  <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+                    {item.impresora || "Sin nombre"}
+                  </Text>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                    Serie: {item.no_serie || "Sin número de serie"}
+                  </Text>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                    {item.edificio || "Sin edificio"} - {item.oficina || "Sin oficina"}
+                  </Text>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                    Estado: {item.estado || "Sin estado"}
+                  </Text>
                   <View style={[styles.row, { marginTop: 10 }]}>
                     <Button
-                      icon="pencil"
                       mode="outlined"
                       onPress={() => handleEditMaquina(item)}
                       style={{ marginRight: 8 }}
+                      icon={() => <Icon name="pencil" size={16} />}
+                      compact
                     >
                       Editar
                     </Button>
                     <Button
-                      icon="delete"
                       mode="text"
                       onPress={() => handleDeleteMaquina(item.id)}
                       textColor="red"
+                      icon={() => <Icon name="delete" size={16} />}
                     >
                       Eliminar
                     </Button>
                   </View>
                 </View>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>No hay máquinas disponibles.</Text>}
+              ListEmptyComponent={<Text>No hay máquinas disponibles.</Text>}
             />
           )}
 
@@ -700,30 +715,35 @@ const AdministradorScreen = () => {
               data={usuarios}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <Text variant="titleMedium">{item.usuario || "Sin usuario"}</Text>
-                  <Text>Rol: {item.rol || "Sin rol"}</Text>
+                <View style={styles.ticketCard}>
+                  <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
+                    {item.usuario || "Sin usuario"}
+                  </Text>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                    Rol: {item.rol || "Sin rol"}
+                  </Text>
                   <View style={[styles.row, { marginTop: 10 }]}>
                     <Button
-                      icon="pencil"
                       mode="outlined"
                       onPress={() => handleEditUsuario(item)}
                       style={{ marginRight: 8 }}
+                      icon={() => <Icon name="pencil" size={16} />}
+                      compact
                     >
                       Editar
                     </Button>
                     <Button
-                      icon="delete"
                       mode="text"
                       onPress={() => handleDeleteUsuario(item.id)}
                       textColor="red"
+                      icon={() => <Icon name="delete" size={16} />}
                     >
                       Eliminar
                     </Button>
                   </View>
                 </View>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>No hay usuarios disponibles.</Text>}
+              ListEmptyComponent={<Text>No hay usuarios disponibles.</Text>}
             />
           )}
 
@@ -752,6 +772,7 @@ const AdministradorScreen = () => {
                                 mode="text"
                                 onPress={() => toggleRowExpansion(item.id)}
                                 style={styles.detailsButton}
+                                icon={() => <Icon name={expandedRows[item.id] ? "chevron-up" : "chevron-down"} size={16} />}
                               >
                                 {expandedRows[item.id] ? "Ocultar Detalles" : "Mostrar Detalles"}
                               </Button>
@@ -794,27 +815,29 @@ const AdministradorScreen = () => {
                 is_active: true,
               });
             }}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={styles.modalContainer}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text variant="titleMedium" style={{ marginBottom: 20, color: theme.colors.primary }}>
               {editing ? "Editar Ticket" : "Nuevo Ticket"}
             </Text>
-            <Text style={styles.label}>Impresora:</Text>
-            <Picker
-              selectedValue={formData.id_impresora}
-              onValueChange={(val) => setFormData({ ...formData, id_impresora: val })}
-              style={styles.picker}
-            >
-              <Picker.Item label="Seleccione una impresora" value="" />
-              {maquinas.map((m) => (
-                <Picker.Item key={m.id} label={m.impresora} value={m.id.toString()} />
-              ))}
-            </Picker>
+            <Text style={{ marginBottom: 8 }}>Impresora:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.id_impresora}
+                onValueChange={(val) => setFormData({ ...formData, id_impresora: val })}
+                style={{ backgroundColor: "#fff", marginBottom: 16 }}
+              >
+                <Picker.Item label="Seleccione una impresora" value="" />
+                {maquinas.map((m) => (
+                  <Picker.Item key={m.id} label={m.impresora} value={m.id.toString()} />
+                ))}
+              </Picker>
+            </View>
             <TextInput
               label="Tipo de Daño"
               value={formData.tipo_danio}
               onChangeText={(text) => setFormData({ ...formData, tipo_danio: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
             <TextInput
               label="Reporte"
@@ -822,23 +845,25 @@ const AdministradorScreen = () => {
               multiline
               numberOfLines={4}
               onChangeText={(text) => setFormData({ ...formData, reporte: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
-            <Text style={styles.label}>Estado:</Text>
-            <Picker
-              selectedValue={formData.estado}
-              onValueChange={(val) => setFormData({ ...formData, estado: val })}
-              style={styles.picker}
-            >
-              <Picker.Item label="Pendiente" value="Pendiente" />
-              <Picker.Item label="En proceso" value="En proceso" />
-              <Picker.Item label="Resuelto" value="Resuelto" />
-            </Picker>
+            <Text style={{ marginBottom: 8 }}>Estado:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.estado}
+                onValueChange={(val) => setFormData({ ...formData, estado: val })}
+                style={styles.picker}
+              >
+                <Picker.Item label="Pendiente" value="Pendiente" />
+                <Picker.Item label="En proceso" value="En proceso" />
+                <Picker.Item label="Resuelto" value="Resuelto" />
+              </Picker>
+            </View>
             <Button
               mode="contained"
               onPress={handleSave}
               disabled={!formData.id_impresora || !formData.tipo_danio || !formData.reporte}
-              style={styles.button}
+              style={{ marginTop: 16 }}
             >
               {editing ? "Actualizar" : "Guardar"}
             </Button>
@@ -858,46 +883,48 @@ const AdministradorScreen = () => {
                 is_active: true,
               });
             }}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={styles.modalContainer}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text variant="titleMedium" style={{ marginBottom: 20, color: theme.colors.primary }}>
               {editingMaquina ? "Editar Máquina" : "Nueva Máquina"}
             </Text>
             <TextInput
               label="Impresora"
               value={formMaquina.impresora}
               onChangeText={(text) => setFormMaquina({ ...formMaquina, impresora: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
             <TextInput
               label="Número de Serie"
               value={formMaquina.no_serie}
               onChangeText={(text) => setFormMaquina({ ...formMaquina, no_serie: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
             <TextInput
               label="Edificio"
               value={formMaquina.edificio}
               onChangeText={(text) => setFormMaquina({ ...formMaquina, edificio: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
             <TextInput
               label="Oficina"
               value={formMaquina.oficina}
               onChangeText={(text) => setFormMaquina({ ...formMaquina, oficina: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
-            <Text style={styles.label}>Estado:</Text>
-            <Picker
-              selectedValue={formMaquina.estado}
-              onValueChange={(val) => setFormMaquina({ ...formMaquina, estado: val })}
-              style={styles.picker}
-            >
-              <Picker.Item label="Operativa" value="Operativa" />
-              <Picker.Item label="En reparación" value="En reparación" />
-              <Picker.Item label="Fuera de servicio" value="Fuera de servicio" />
-              <Picker.Item label="En Mantenimiento" value="En Mantenimiento" />
-            </Picker>
+            <Text style={{ marginBottom: 8 }}>Estado:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formMaquina.estado}
+                onValueChange={(val) => setFormMaquina({ ...formMaquina, estado: val })}
+                style={styles.picker}
+              >
+                <Picker.Item label="Operativa" value="Operativa" />
+                <Picker.Item label="En reparación" value="En reparación" />
+                <Picker.Item label="Fuera de servicio" value="Fuera de servicio" />
+                <Picker.Item label="En Mantenimiento" value="En Mantenimiento" />
+              </Picker>
+            </View>
             <Button
               mode="contained"
               onPress={handleSaveMaquina}
@@ -907,7 +934,7 @@ const AdministradorScreen = () => {
                 !formMaquina.edificio ||
                 !formMaquina.oficina
               }
-              style={styles.button}
+              style={{ marginTop: 16 }}
             >
               {editingMaquina ? "Actualizar" : "Guardar"}
             </Button>
@@ -920,39 +947,41 @@ const AdministradorScreen = () => {
               setEditingUsuario(null);
               setFormUsuario({ usuario: "", contraseña: "", rol: "tecnico" });
             }}
-            contentContainerStyle={styles.modal}
+            contentContainerStyle={styles.modalContainer}
           >
-            <Text variant="titleLarge" style={styles.modalTitle}>
+            <Text variant="titleMedium" style={{ marginBottom: 20, color: theme.colors.primary }}>
               {editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
             </Text>
             <TextInput
               label="Usuario"
               value={formUsuario.usuario}
               onChangeText={(text) => setFormUsuario({ ...formUsuario, usuario: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
             />
             <TextInput
               label="Contraseña"
               value={formUsuario.contraseña}
               secureTextEntry
               onChangeText={(text) => setFormUsuario({ ...formUsuario, contraseña: text })}
-              style={styles.input}
+              style={{ marginBottom: 16 }}
               placeholder={editingUsuario ? "Dejar en blanco para no cambiar" : ""}
             />
-            <Text style={styles.label}>Rol:</Text>
-            <Picker
-              selectedValue={formUsuario.rol}
-              onValueChange={(val) => setFormUsuario({ ...formUsuario, rol: val })}
-              style={styles.picker}
-            >
-              <Picker.Item label="Técnico" value="tecnico" />
-              <Picker.Item label="Administrador" value="administrador" />
-            </Picker>
+            <Text style={{ marginBottom: 8 }}>Rol:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formUsuario.rol}
+                onValueChange={(val) => setFormUsuario({ ...formUsuario, rol: val })}
+                style={styles.picker}
+              >
+                <Picker.Item label="Técnico" value="tecnico" />
+                <Picker.Item label="Administrador" value="administrador" />
+              </Picker>
+            </View>
             <Button
               mode="contained"
               onPress={handleSaveUsuario}
               disabled={!formUsuario.usuario || (!editingUsuario && !formUsuario.contraseña)}
-              style={styles.button}
+              style={{ marginTop: 16 }}
             >
               {editingUsuario ? "Actualizar" : "Guardar"}
             </Button>
@@ -964,54 +993,65 @@ const AdministradorScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 12,
-  },
-  card: {
-    backgroundColor: "#fff",
+  container: { flex: 1 },
+  content: { flex: 1, padding: 16 },
+  ticketCard: {
     padding: 16,
-    borderRadius: 8,
     marginBottom: 12,
+    backgroundColor: "#fff",
+    borderRadius: 8,
     elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  modalContainer: {
+    padding: 20,
+    backgroundColor: "#fff",
+    margin: 20,
+    borderRadius: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  picker: {
+    backgroundColor: "#fff",
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#ccc",
+    backgroundColor: "#f9f9f9",
+  },
+  navButton: { alignItems: "center" },
+  navButtonActive: {
+    alignItems: "center",
+    borderTopWidth: 2,
+    borderTopColor: "#6200ee",
+    paddingTop: 10,
+  },
+  navText: { marginTop: 4, fontSize: 12 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  dateText: { fontSize: 12, color: "#888" },
+  statusContainer: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 10,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
-  },
-  modal: {
-    backgroundColor: "#fff",
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-    maxHeight: Dimensions.get('window').height * 0.9,
-  },
-  modalTitle: {
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  label: {
-    marginBottom: 8,
-    fontSize: 16,
-  },
-  picker: {
-    backgroundColor: "#fff",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 4,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  button: {
-    marginTop: 16,
   },
   tabs: {
     flexDirection: "row",
@@ -1042,12 +1082,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 8,
     fontSize: 12,
-  },
-  errorText: {
-    color: "red",
-    textAlign: "center",
-    marginBottom: 16,
-    paddingHorizontal: 10,
   },
   emptyText: {
     textAlign: "center",
