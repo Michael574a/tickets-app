@@ -7,7 +7,6 @@ import {
   Appbar,
   Button,
   Chip,
-  Menu,
   Modal,
   Portal,
   Provider,
@@ -15,14 +14,14 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
-import { Row, Table } from "react-native-table-component";
+import { Row, Rows, Table } from "react-native-table-component";
 
 // Define API URL based on platform
 const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
-  const [tab, setTab] = useState("auditorias"); // Default to "auditorias"
+  const [tab, setTab] = useState("tickets");
 
   // State for data fetched from the backend
   const [tickets, setTickets] = useState([]);
@@ -62,12 +61,6 @@ const AdministradorScreen = () => {
     contraseña: "",
     rol: "tecnico",
   });
-
-  // State to manage expanded rows in audit logs
-  const [expandedRows, setExpandedRows] = useState({});
-
-  // State for export menu
-  const [menuVisible, setMenuVisible] = useState(false);
 
   // Fetch all data on component mount
   useEffect(() => {
@@ -117,7 +110,6 @@ const AdministradorScreen = () => {
   };
 
   const handleExportPDF = async () => {
-    setMenuVisible(false);
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
@@ -146,7 +138,6 @@ const AdministradorScreen = () => {
   };
 
   const handleExportExcel = async () => {
-    setMenuVisible(false);
     try {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) {
@@ -174,6 +165,14 @@ const AdministradorScreen = () => {
     }
   };
 
+  const handlePrint = () => {
+    if (Platform.OS === 'web') {
+      window.print();
+    } else {
+      Alert.alert("Info", "La impresión directa no está soportada en esta plataforma.");
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? "Fecha no válida" : date.toLocaleString('es-ES', {
@@ -185,153 +184,48 @@ const AdministradorScreen = () => {
     });
   };
 
-  const formatSummary = (log) => {
+  const formatDetails = (details, log) => {
     const actionMap = {
-      create: "Se creó",
-      update: "Se actualizó",
-      delete: "Se eliminó",
+      create: "Creó",
+      update: "Actualizó",
+      delete: "Eliminó",
     };
     const resourceMap = {
-      maquinas: "la máquina",
-      tickets: "el ticket",
-      usuarios: "el usuario",
+      maquinas: "una máquina",
+      tickets: "un ticket",
+      usuarios: "un usuario",
     };
-    const action = actionMap[log.action] || "Se realizó una acción en";
+    const action = actionMap[log.action] || "Realizó una acción en";
     const resource = resourceMap[log.resource] || "recurso desconocido";
     const resourceId = log.resource_id || "Desconocido";
 
-    return `${action} ${resource} con el ID: ${resourceId}`;
+    if (log.action === "create" || log.action === "delete") {
+      return `${action} ${resource} con el ID: ${resourceId}`;
+    } else if (log.action === "update" && details) {
+      const oldData = details.old_data || {};
+      const newData = details.new_data || {};
+      let formattedDetails = `${action} ${resource} con el ID: ${resourceId}.\n`;
+      formattedDetails += "Datos antiguos:\n";
+      for (let key in oldData) {
+        formattedDetails += `  - ${key}: ${JSON.stringify(oldData[key])}\n`;
+      }
+      formattedDetails += "Datos nuevos:\n";
+      for (let key in newData) {
+        formattedDetails += `  - ${key}: ${JSON.stringify(newData[key])}\n`;
+      }
+      return formattedDetails.trim();
+    }
+    return `${action} ${resource} con el ID: ${resourceId} (detalles no disponibles)`;
   };
 
-  const toggleRowExpansion = (logId) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [logId]: !prev[logId],
-    }));
-  };
-
-  const renderDetailsTable = (details, log) => {
-    if (!details) {
-      return (
-        <View style={styles.detailsContainer}>
-          <Text style={styles.detailsText}>Detalles no disponibles</Text>
-        </View>
-      );
-    }
-
-    const parsedDetails = typeof details === 'string' ? JSON.parse(details) : details;
-    const oldData = parsedDetails.old_data || {};
-    const newData = parsedDetails.new_data || {};
-
-    if (log.action === "create") {
-      const allKeys = Object.keys(newData);
-      const tableData = allKeys.map((key) => [
-        key,
-        "-",
-        newData[key] !== undefined ? JSON.stringify(newData[key]) : "-",
-      ]);
-
-      return (
-        <View style={styles.detailsContainer}>
-          <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
-            <Row
-              data={['Campo', 'Datos Antiguos', 'Datos Nuevos']}
-              style={styles.detailsHeader}
-              textStyle={styles.detailsHeaderText}
-              flexArr={[1, 2, 2]}
-            />
-            {tableData.map((row, index) => (
-              <Row
-                key={index}
-                data={row}
-                style={styles.detailsRow}
-                textStyle={styles.detailsText}
-                flexArr={[1, 2, 2]}
-              />
-            ))}
-          </Table>
-        </View>
-      );
-    }
-
-    if (log.action === "delete") {
-      const allKeys = Object.keys(oldData);
-      const tableData = allKeys.map((key) => [
-        key,
-        oldData[key] !== undefined ? JSON.stringify(oldData[key]) : "-",
-        "-",
-      ]);
-
-      return (
-        <View style={styles.detailsContainer}>
-          <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
-            <Row
-              data={['Campo', 'Datos Antiguos', 'Datos Nuevos']}
-              style={styles.detailsHeader}
-              textStyle={styles.detailsHeaderText}
-              flexArr={[1, 2, 2]}
-            />
-            {tableData.map((row, index) => (
-              <Row
-                key={index}
-                data={row}
-                style={styles.detailsRow}
-                textStyle={styles.detailsText}
-                flexArr={[1, 2, 2]}
-              />
-            ))}
-          </Table>
-        </View>
-      );
-    }
-
-    if (log.action === "update" && oldData && newData) {
-      const allKeys = [...new Set([...Object.keys(oldData), ...Object.keys(newData)])];
-      const tableData = allKeys.map((key) => [
-        key,
-        oldData[key] !== undefined ? JSON.stringify(oldData[key]) : "-",
-        newData[key] !== undefined ? JSON.stringify(newData[key]) : "-",
-      ]);
-
-      return (
-        <View style={styles.detailsContainer}>
-          <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
-            <Row
-              data={['Campo', 'Datos Antiguos', 'Datos Nuevos']}
-              style={styles.detailsHeader}
-              textStyle={styles.detailsHeaderText}
-              flexArr={[1, 2, 2]}
-            />
-            {tableData.map((row, index) => (
-              <Row
-                key={index}
-                data={row}
-                style={styles.detailsRow}
-                textStyle={styles.detailsText}
-                flexArr={[1, 2, 2]}
-              />
-            ))}
-          </Table>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.detailsContainer}>
-        <Text style={styles.detailsText}>Detalles no disponibles</Text>
-      </View>
-    );
-  };
-
-  const tableData = auditLogs.map((log) => ({
-    id: log.id || '-',
-    userName: log.user_name || `Usuario ${log.user_id || 'Desconocido'}`,
-    action: `${log.action === 'create' ? 'Creó' : log.action === 'update' ? 'Actualizó' : 'Eliminó'} ${log.resource === 'maquinas' ? 'una máquina' : log.resource === 'tickets' ? 'un ticket' : 'un usuario'}`,
-    role: log.rol || '-',
-    summary: formatSummary(log),
-    details: log.details,
-    timestamp: formatDate(log.timestamp),
-  }));
+  const tableData = auditLogs.map((log) => [
+    log.id || 'N/A',
+    log.user_name || `Usuario ${log.user_id || 'Desconocido'}`,
+    `${log.action === 'create' ? 'Creó' : log.action === 'update' ? 'Actualizó' : 'Eliminó'} ${log.resource === 'maquinas' ? 'una máquina' : log.resource === 'tickets' ? 'un ticket' : 'un usuario'}`,
+    log.rol || 'No disponible',
+    formatDetails(log.details, log),
+    formatDate(log.timestamp),
+  ]);
 
   const handleSave = async () => {
     try {
@@ -528,7 +422,7 @@ const AdministradorScreen = () => {
     setEditingUsuario(item);
     setFormUsuario({
       usuario: item.usuario || "",
-      contraseña: "",
+      contraseña: "", // Do not pre-fill password for security
       rol: item.rol || "tecnico",
     });
     setVisibleUsuario(true);
@@ -595,24 +489,6 @@ const AdministradorScreen = () => {
               >
                 Nuevo Usuario
               </Button>
-            )}
-            {tab === "auditorias" && (
-              <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                anchor={
-                  <Button
-                    mode="contained"
-                    onPress={() => setMenuVisible(true)}
-                    style={{ marginLeft: 8 }}
-                  >
-                    Exportar/Imprimir
-                  </Button>
-                }
-              >
-                <Menu.Item onPress={handleExportPDF} title="Exportar a PDF" />
-                <Menu.Item onPress={handleExportExcel} title="Exportar a Excel" />
-              </Menu>
             )}
           </View>
 
@@ -733,45 +609,40 @@ const AdministradorScreen = () => {
                 <ScrollView style={styles.scrollView}>
                   <Table borderStyle={{ borderWidth: 1, borderColor: '#ddd' }}>
                     <Row
-                      data={['ID', 'Nombre', 'Acción', 'Rol', 'Resumen', 'Fecha y Hora']}
+                      data={['ID', 'Nombre', 'Acción', 'Rol', 'Detalles', 'Fecha y Hora']}
                       style={styles.header}
                       textStyle={styles.headerText}
                       flexArr={[1, 1.5, 2, 1, 3, 2]}
                     />
-                    {tableData.map((item, index) => (
-                      <View key={item.id}>
-                        <Row
-                          data={[
-                            item.id,
-                            item.userName,
-                            item.action,
-                            item.role,
-                            <View style={styles.summaryContainer}>
-                              <Text style={styles.summaryText}>{item.summary}</Text>
-                              <Button
-                                mode="text"
-                                onPress={() => toggleRowExpansion(item.id)}
-                                style={styles.detailsButton}
-                              >
-                                {expandedRows[item.id] ? "Ocultar Detalles" : "Mostrar Detalles"}
-                              </Button>
-                            </View>,
-                            item.timestamp,
-                          ]}
-                          textStyle={styles.text}
-                          flexArr={[1, 1.5, 2, 1, 3, 2]}
-                        />
-                        {expandedRows[item.id] && (
-                          <View style={styles.expandedRow}>
-                            {renderDetailsTable(item.details, {
-                              action: auditLogs[index].action,
-                              resource_id: auditLogs[index].resource_id,
-                            })}
-                          </View>
-                        )}
-                      </View>
-                    ))}
+                    <Rows
+                      data={tableData}
+                      textStyle={styles.text}
+                      flexArr={[1, 1.5, 2, 1, 3, 2]}
+                    />
                   </Table>
+                  <View style={styles.exportButtons}>
+                    <Button
+                      mode="contained"
+                      onPress={handleExportPDF}
+                      style={{ marginRight: 8, flex: 1 }}
+                    >
+                      Exportar a PDF
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={handleExportExcel}
+                      style={{ marginRight: 8, flex: 1 }}
+                    >
+                      Exportar a Excel
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={handlePrint}
+                      style={{ flex: 1 }}
+                    >
+                      Imprimir
+                    </Button>
+                  </View>
                 </ScrollView>
               ) : (
                 <Text style={styles.emptyText}>No hay auditorías disponibles.</Text>
@@ -1025,6 +896,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexWrap: "wrap",
   },
+  exportButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingHorizontal: 8,
+    flexWrap: "wrap",
+  },
   scrollView: {
     flex: 1,
     marginBottom: 16,
@@ -1054,41 +932,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: "#666",
-  },
-  summaryContainer: {
-    padding: 8,
-  },
-  summaryText: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  detailsButton: {
-    marginTop: 4,
-  },
-  expandedRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f9f9f9',
-  },
-  detailsContainer: {
-    padding: 8,
-  },
-  detailsHeader: {
-    height: 40,
-    backgroundColor: '#e0e0e0',
-  },
-  detailsHeaderText: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  detailsRow: {
-    height: 40,
-  },
-  detailsText: {
-    textAlign: 'center',
-    fontSize: 12,
-    padding: 4,
   },
 });
 

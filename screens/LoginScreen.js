@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
-const API_URL = "http://localhost:5000";
+const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000"; // Ajusta la IP
 
 export default function LoginScreen({ navigation }) {
   const [usuario, setUsuario] = useState('');
@@ -15,24 +15,25 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await axios.post(`${API_URL}/login`, {
         usuario,
-        contraseña
+        contraseña,
       });
-      
-      await AsyncStorage.setItem('userToken', response.data.token);
-      
-      if (response.data.rol === 'administrador') {
+
+      const { token } = response.data;
+      await AsyncStorage.setItem('userToken', token);
+      console.log('Token guardado exitosamente:', token);
+
+      if (response.data.usuario.rol === 'administrador') {
         navigation.navigate('AdministradorScreen');
       } else {
         navigation.navigate('UsuarioScreen');
       }
-      
     } catch (err) {
-      console.log('Error completo:', err); 
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
+      console.log('Error completo:', err.response ? err.response.data : err.message);
+      setError(err.response?.data?.error || 'Error al iniciar sesión. Verifique sus credenciales.');
     } finally {
       setLoading(false);
     }
@@ -41,9 +42,9 @@ export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>Inicio de Sesión</Text>
-      
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      
+
       <TextInput
         label="Usuario"
         value={usuario}
@@ -51,7 +52,7 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         autoCapitalize="none"
       />
-      
+
       <TextInput
         label="Contraseña"
         value={contraseña}
@@ -59,19 +60,19 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      
-      <Button 
-        mode="contained" 
-        onPress={handleLogin} 
+
+      <Button
+        mode="contained"
+        onPress={handleLogin}
         loading={loading}
         disabled={loading}
         style={styles.button}
       >
         Ingresar
       </Button>
-      <Button 
-        mode="text" 
-        onPress={() => navigation.navigate('RegistroScreen')} 
+      <Button
+        mode="text"
+        onPress={() => navigation.navigate('RegistroScreen')}
         style={styles.link}
       >
         ¿No tienes una cuenta? Regístrate
@@ -85,5 +86,6 @@ const styles = StyleSheet.create({
   title: { marginBottom: 30, textAlign: 'center' },
   input: { marginBottom: 15 },
   button: { marginTop: 10 },
-  error: { color: 'red', marginBottom: 15, textAlign: 'center' }
+  error: { color: 'red', marginBottom: 15, textAlign: 'center' },
+  link: { marginTop: 10, textAlign: 'center' },
 });
