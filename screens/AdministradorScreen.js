@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
+import { Buffer } from 'buffer';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from "react";
@@ -20,14 +21,13 @@ import {
 import { Row, Table } from "react-native-table-component";
 import * as XLSX from 'xlsx';
 
-// Define API URL based on platform
 const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://192.168.101.8:5000";
 
 const AdministradorScreen = () => {
   const theme = useTheme();
-  const [tab, setTab] = useState("auditorias"); // Default to "auditorias"
+  const [tab, setTab] = useState("tickets"); 
 
-  // State for data fetched from the backend
+
   const [tickets, setTickets] = useState([]);
   const [maquinas, setMaquinas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -129,8 +129,9 @@ const AdministradorScreen = () => {
       }
       const response = await axios.get(`${API_URL}/audit-logs/export/pdf`, {
         headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob',
+        responseType: 'arraybuffer',
       });
+
       if (Platform.OS === 'web') {
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
         const link = document.createElement('a');
@@ -139,8 +140,23 @@ const AdministradorScreen = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      } else if (Platform.OS === 'android') {
+        // Guardar y compartir en Android
+        const fileName = `audit_logs_${new Date().toISOString().split('T')[0]}.pdf`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+        await FileSystem.writeAsStringAsync(
+          fileUri,
+          Buffer.from(response.data).toString('base64'),
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Compartir o guardar reporte de auditoría",
+          UTI: "com.adobe.pdf",
+        });
+        Alert.alert("Reporte generado", "El archivo PDF se ha generado. Si deseas guardarlo, selecciona la opción adecuada en el menú.");
       } else {
-        Alert.alert("Info", "Exportación a PDF no soportada en esta plataforma.");
+        Alert.alert("No soportado", "La descarga de archivos PDF solo está disponible en Android y Web.");
       }
     } catch (e) {
       console.error("Error exporting PDF:", e.message);
@@ -158,18 +174,34 @@ const AdministradorScreen = () => {
       }
       const response = await axios.get(`${API_URL}/audit-logs/export/excel`, {
         headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob',
+        responseType: 'arraybuffer',
       });
+
       if (Platform.OS === 'web') {
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', `audit_logs_${new Date().toISOString().split('T')[0]}.xlsx`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      } else if (Platform.OS === 'android') {
+        // Guardar y compartir en Android
+        const fileName = `audit_logs_${new Date().toISOString().split('T')[0]}.xlsx`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+        await FileSystem.writeAsStringAsync(
+          fileUri,
+          Buffer.from(response.data).toString('base64'),
+          { encoding: FileSystem.EncodingType.Base64 }
+        );
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          dialogTitle: "Compartir o guardar reporte de auditoría",
+          UTI: "com.microsoft.excel.xlsx",
+        });
+        Alert.alert("Reporte generado", "El archivo Excel se ha generado. Si deseas guardarlo, selecciona la opción adecuada en el menú.");
       } else {
-        Alert.alert("Info", "Exportación a Excel no soportada en esta plataforma.");
+        Alert.alert("No soportado", "La descarga de archivos Excel solo está disponible en Android y Web.");
       }
     } catch (e) {
       console.error("Error exporting Excel:", e.message);
@@ -628,34 +660,39 @@ const fetchUsuarios = async () => {
         </Appbar.Header>
 
         <View style={styles.container}>
-          <View style={styles.tabs}>
-            <Button
-              mode={tab === "tickets" ? "contained" : "outlined"}
-              onPress={() => setTab("tickets")}
-              style={{ marginRight: 8 }}
-            >
-              Tickets
-            </Button>
-            <Button
-              mode={tab === "maquinas" ? "contained" : "outlined"}
-              onPress={() => setTab("maquinas")}
-              style={{ marginRight: 8 }}
-            >
-              Máquinas
-            </Button>
-            <Button
-              mode={tab === "usuarios" ? "contained" : "outlined"}
-              onPress={() => setTab("usuarios")}
-              style={{ marginRight: 8 }}
-            >
-              Usuarios
-            </Button>
-            <Button
-              mode={tab === "auditorias" ? "contained" : "outlined"}
-              onPress={() => setTab("auditorias")}
-            >
-              Auditorías
-            </Button>
+          <View style={styles.tabsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.tabs}>
+                <Button
+                  mode={tab === "tickets" ? "contained" : "outlined"}
+                  onPress={() => setTab("tickets")}
+                  style={styles.tabButton}
+                >
+                  Tickets
+                </Button>
+                <Button
+                  mode={tab === "maquinas" ? "contained" : "outlined"}
+                  onPress={() => setTab("maquinas")}
+                  style={styles.tabButton}
+                >
+                  Máquinas
+                </Button>
+                <Button
+                  mode={tab === "usuarios" ? "contained" : "outlined"}
+                  onPress={() => setTab("usuarios")}
+                  style={styles.tabButton}
+                >
+                  Usuarios
+                </Button>
+                <Button
+                  mode={tab === "auditorias" ? "contained" : "outlined"}
+                  onPress={() => setTab("auditorias")}
+                  style={styles.tabButton}
+                >
+                  Auditorías
+                </Button>
+              </View>
+            </ScrollView>
           </View>
 
           <View style={styles.addButtons}>
@@ -663,13 +700,20 @@ const fetchUsuarios = async () => {
               <Button
                 mode="contained"
                 onPress={() => setVisible(true)}
-                style={{ marginRight: 8 }}
+                style={{ marginRight: 5 }}
+                buttonColor="#6989ff" 
+                
+                
               >
                 Nuevo Ticket
               </Button>
             )}
             {tab === "maquinas" && (
-              <Button mode="contained" onPress={() => setVisibleMaquina(true)}>
+              <Button
+                mode="contained"
+                onPress={() => setVisibleMaquina(true)}
+                buttonColor="#6989ff"
+              >
                 Nueva Máquina
               </Button>
             )}
@@ -678,6 +722,7 @@ const fetchUsuarios = async () => {
                 mode="contained"
                 onPress={() => setVisibleUsuario(true)}
                 style={{ marginRight: 8 }}
+                buttonColor="#6989ff"
               >
                 Nuevo Usuario
               </Button>
@@ -1159,11 +1204,23 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
   },
-  tabs: {
+  tabsContainer: {
     flexDirection: "row",
     marginBottom: 16,
     justifyContent: "center",
     flexWrap: "wrap",
+  },
+  tabs: {
+    flexDirection: "row",
+    marginBottom: 10,
+    justifyContent: "center",
+    flexWrap: "wrap",
+    
+  },
+  tabButton: {
+    marginRight: 2,
+   
+    
   },
   addButtons: {
     flexDirection: "row",
@@ -1174,6 +1231,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     marginBottom: 16,
+   
   },
   header: {
     height: 50,
@@ -1185,6 +1243,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   text: {
+    
     textAlign: 'center',
     padding: 8,
     fontSize: 12,

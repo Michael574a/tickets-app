@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 //const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://localhost:5000";
+const API_URL = "http://192.168.101.8:5000";
 const ImpresorasScreen = () => {
   const theme = useTheme();
   const [impresoras, setImpresoras] = useState([]);
@@ -39,7 +40,15 @@ const ImpresorasScreen = () => {
   const fetchImpresoras = async () => {
     try {
       setRefreshing(true);
-      const response = await axios.get(`${API_URL}/maquinas`);
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        console.error("No se encontró token de autenticación");
+        setRefreshing(false);
+        return;
+      }
+      const response = await axios.get(`${API_URL}/maquinas`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setImpresoras(response.data);
     } catch (error) {
       console.error("Error al obtener impresoras:", error);
@@ -111,6 +120,7 @@ const ImpresorasScreen = () => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+      margin:-17 ,
     },
     content: {
       flex: 1,
@@ -176,7 +186,7 @@ const ImpresorasScreen = () => {
           onRefresh={fetchImpresoras}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <View style={styles.card} key={item._id}>
               <View style={styles.row}>
                 <Text
                   variant="titleMedium"

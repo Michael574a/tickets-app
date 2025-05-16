@@ -1,8 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
+import axiosRetry from "axios-retry";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -17,8 +19,15 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import ImpresorasScreen from "./ImpresorasScreen";
 
-//const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://localhost:5000";
+// Configura reintentos para axios
+axiosRetry(axios, { retries: 3, retryDelay: (retryCount) => retryCount * 1000 });
+
+// Configura API_URL según el entorno
+const API_URL =
+  Platform.OS === "android" && !Platform.isPad
+    ? "http://192.168.101.8:5000" // Emulador Android
+    : "http://192.168.101.8:5000"; // Dispositivo físico o IP de tu máquina
+
 const UsuarioScreen = () => {
   const theme = useTheme();
   const [tickets, setTickets] = useState([]);
@@ -26,6 +35,7 @@ const UsuarioScreen = () => {
   const [visible, setVisible] = useState(false);
   const [editingTicket, setEditingTicket] = useState(null);
   const [activeTab, setActiveTab] = useState("tickets");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [ticketData, setTicketData] = useState({
     id_impresora: "",
@@ -44,30 +54,65 @@ const UsuarioScreen = () => {
 
   const fetchTickets = async () => {
     try {
-      const response = await axios.get(`${API_URL}/tickets`);
+      setErrorMessage("");
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        setErrorMessage("No se encontró token de autenticación");
+        return;
+      }
+      console.log("Solicitando tickets a:", `${API_URL}/tickets`, "con token:", token);
+      const response = await axios.get(`${API_URL}/tickets`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000, // 15 segundos de timeout
+      });
       setTickets(response.data);
     } catch (error) {
-      console.error("Error al obtener tickets:", error);
+      console.error("Error al obtener tickets:", error.message);
+      setErrorMessage("Error al cargar los tickets. Intenta de nuevo.");
     }
   };
 
   const fetchMaquinas = async () => {
     try {
-      const response = await axios.get(`${API_URL}/maquinas`);
+      setErrorMessage("");
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        setErrorMessage("No se encontró token de autenticación");
+        return;
+      }
+      console.log("Solicitando máquinas a:", `${API_URL}/maquinas`, "con token:", token);
+      const response = await axios.get(`${API_URL}/maquinas`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
+      });
       setMaquinas(response.data);
     } catch (error) {
-      console.error("Error al obtener máquinas:", error);
+      console.error("Error al obtener máquinas:", error.message);
+      setErrorMessage("Error al cargar las máquinas. Intenta de nuevo.");
     }
   };
 
   const handleSave = async () => {
     try {
-          console.log("Datos enviados al servidor:", ticketData); // Verifica los datos
+      setErrorMessage("");
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        setErrorMessage("No se encontró token de autenticación");
+        return;
+      }
+      const headers = { Authorization: `Bearer ${token}` };
+      console.log("Datos enviados al servidor:", ticketData);
+
+      const dataToSend = {
+        ...ticketData,
+        modified_at: new Date().toISOString(),
+      };
 
       if (editingTicket) {
-        await axios.put(`${API_URL}/tickets/${editingTicket.id}`, ticketData);
+        await axios.put(`${API_URL}/tickets/${editingTicket.id}`, dataToSend, { headers });
       } else {
-        await axios.post(`${API_URL}/tickets`, ticketData);
+        dataToSend.created_at = new Date().toISOString();
+        await axios.post(`${API_URL}/tickets`, dataToSend, { headers });
       }
       fetchTickets();
       setVisible(false);
@@ -82,7 +127,8 @@ const UsuarioScreen = () => {
         modified_at: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Error al guardar ticket:", error);
+      console.error("Error al guardar ticket:", error.message);
+      setErrorMessage("Error al guardar el ticket. Intenta de nuevo.");
     }
   };
 
@@ -90,6 +136,7 @@ const UsuarioScreen = () => {
     setEditingTicket(ticket);
     setTicketData({
       ...ticket,
+      id_impresora: ticket.id_impresora || "", // Asegura que id_impresora esté definido
       modified_at: new Date().toISOString(),
     });
     setVisible(true);
@@ -102,6 +149,7 @@ const UsuarioScreen = () => {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "America/Bogota", // Ajustado para -05 (hora de Colombia)
     };
     return new Date(dateString).toLocaleDateString("es-ES", options);
   };
@@ -111,22 +159,24 @@ const UsuarioScreen = () => {
       <View style={styles.container}>
         <StatusBar style={theme.dark ? "light" : "dark"} />
         <Appbar.Header>
-          <Appbar.Content title="Gestión de Tickets" />
+          <Appbar.Content title="Gestión de Tickets y Máquinas" />
           {activeTab === "tickets" && (
             <Appbar.Action icon="refresh" onPress={fetchTickets} />
           )}
         </Appbar.Header>
 
         <View style={styles.content}>
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
           {activeTab === "tickets" && (
             <FlatList
               data={tickets}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item) => item.id.toString()} // Cambiado de _id a id para coincidir con el servidor
               renderItem={({ item }) => (
                 <View style={styles.ticketCard}>
                   <View style={styles.cardHeader}>
                     <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-                      {maquinas.find((m) => m._id === item.id_impresora?._id)?.impresora || "Desconocida"}
+                      {maquinas.find((m) => m.id === item.id_impresora)?.impresora || "Desconocida"}
                     </Text>
                     <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                   </View>
@@ -165,6 +215,7 @@ const UsuarioScreen = () => {
                   </Button>
                 </View>
               )}
+              ListEmptyComponent={<Text>No hay tickets disponibles.</Text>}
             />
           )}
 
@@ -201,15 +252,16 @@ const UsuarioScreen = () => {
               <Text style={{ marginBottom: 8 }}>Impresora:</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-  selectedValue={ticketData.id_impresora} 
-  onValueChange={(val) => setTicketData({ ...ticketData, id_impresora: val })}disabled
-  style={{ backgroundColor: "#fff", marginBottom: 16 }}
->
-  <Picker.Item label="Seleccione una impresora" value="" />
-  {maquinas.map((m) => (
-    <Picker.Item key={m.id} label={m.impresora} value={m.id} />
-  ))}
-</Picker>
+                  selectedValue={ticketData.id_impresora}
+                  onValueChange={(val) => setTicketData({ ...ticketData, id_impresora: val })}
+                  style={{ backgroundColor: "#fff", marginBottom: 16 }}
+                  enabled={!editingTicket} // Deshabilita si estás editando
+                >
+                  <Picker.Item label="Seleccione una impresora" value="" />
+                  {maquinas.map((m) => (
+                    <Picker.Item key={m.id} label={m.impresora} value={m.id} />
+                  ))}
+                </Picker>
               </View>
 
               <TextInput
@@ -217,7 +269,7 @@ const UsuarioScreen = () => {
                 value={ticketData.tipo_danio}
                 onChangeText={(text) => setTicketData({ ...ticketData, tipo_danio: text })}
                 style={{ marginBottom: 16 }}
-                disabled
+                disabled={editingTicket} // Deshabilita si estás editando
               />
 
               <TextInput
@@ -233,9 +285,7 @@ const UsuarioScreen = () => {
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={ticketData.estado}
-                  onValueChange={(value) =>
-                    setTicketData({ ...ticketData, estado: value })
-                  }
+                  onValueChange={(value) => setTicketData({ ...ticketData, estado: value })}
                   style={styles.picker}
                 >
                   <Picker.Item label="Pendiente" value="Pendiente" />
@@ -248,9 +298,7 @@ const UsuarioScreen = () => {
                 mode="contained"
                 onPress={handleSave}
                 style={{ marginTop: 16 }}
-                disabled={
-                  !ticketData.id_impresora || !ticketData.tipo_danio || !ticketData.reporte
-                }
+                disabled={!ticketData.id_impresora || !ticketData.tipo_danio || !ticketData.reporte}
               >
                 {editingTicket ? "Actualizar" : "Crear"}
               </Button>
@@ -288,7 +336,7 @@ const styles = StyleSheet.create({
   ticketCard: {
     padding: 16,
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     elevation: 2,
   },
@@ -332,4 +380,9 @@ const styles = StyleSheet.create({
   },
   dateText: { fontSize: 12, color: "#888" },
   statusContainer: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 10,
+  },
 });

@@ -178,13 +178,13 @@ const auditUpdatePostMiddleware = async (req, res, next) => {
   next();
 };
 
-// Middleware de auditoría para "create" (post-handler)
+
 const auditCreateMiddleware = async (req, res, next) => {
   const { method, path, baseUrl } = req;
   const user = req.user;
   let resource = "";
 
-  // Combine baseUrl and path to get the full route, then extract the resource
+ 
   const fullPath = (baseUrl + path).split("/").filter(segment => segment);
   if (fullPath.length > 0 && ["maquinas", "tickets", "usuarios"].includes(fullPath[0])) {
     resource = fullPath[0];
@@ -220,19 +220,19 @@ const auditCreateMiddleware = async (req, res, next) => {
   next();
 };
 
-// Rutas
 
-// Login
+
+
 app.post("/login", async (req, res) => {
-  console.log("Cuerpo recibido:", req.body);
+  //console.log("Cuerpo recibido:", req.body);
   if (!req.body || typeof req.body !== "object") {
     return res.status(400).json({ error: "Cuerpo de solicitud inválido" });
   }
   const { usuario, contraseña } = req.body;
-  console.log("Datos recibidos:", { usuario, contraseña });
+  //console.log("Datos recibidos:", { usuario, contraseña });
   try {
     const result = await pool.query("SELECT * FROM usuarios WHERE usuario = $1", [usuario]);
-    console.log("Usuario encontrado:", result.rows[0]);
+    
     const user = result.rows[0];
     if (!user) return res.status(401).json({ error: "Usuario no encontrado" });
     const validPassword = await bcrypt.compare(contraseña, user.contraseña);
@@ -245,7 +245,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Audit Logs
+
 app.get("/audit-logs", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -261,7 +261,7 @@ app.get("/audit-logs", authenticateToken, async (req, res) => {
   }
 });
 
-// Endpoint para exportar a PDF
+
 app.get("/audit-logs/export/pdf", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -274,27 +274,27 @@ app.get("/audit-logs/export/pdf", authenticateToken, async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     doc.pipe(res);
 
-    // Título
+    
     doc.fontSize(18).text("Reporte de Auditorías", { align: "center" });
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Fecha de generación: ${new Date().toLocaleString('es-ES')}`, { align: "center" });
     doc.moveDown(1.5);
 
-    // Encabezados de tabla
+  
     const tableHeaders = [
       "ID", "Usuario", "Rol", "Acción", "Recurso", "ID Recurso", "Fecha y Hora"
     ];
     const startX = doc.x;
     let y = doc.y;
 
-    // Dibuja encabezados
+    
     tableHeaders.forEach((header, i) => {
       doc.font('Helvetica-Bold').fontSize(10).text(header, startX + i * 100, y, { width: 100, align: 'center' });
     });
     y += 20;
     doc.moveTo(startX, y - 5).lineTo(startX + tableHeaders.length * 100, y - 5).stroke();
 
-    // Dibuja filas
+    
     result.rows.forEach((log) => {
       const actionText = log.action === "create" ? "Creó" : log.action === "update" ? "Actualizó" : "Eliminó";
       doc.font('Helvetica').fontSize(9)
@@ -543,7 +543,7 @@ usuariosRouter.put("/:id", authenticateToken, auditMiddleware, async (req, res, 
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
     res.json(result.rows[0]);
-    next(); // Proceed to auditUpdatePostMiddleware
+    next(); 
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
     res.status(500).send("Error al actualizar usuario");
@@ -563,12 +563,12 @@ usuariosRouter.delete("/:id", authenticateToken, auditMiddleware, async (req, re
   }
 });
 
-// Montar los routers
+
 app.use("/maquinas", authenticateToken, maquinasRouter);
 app.use("/tickets", authenticateToken, ticketsRouter);
 app.use("/usuarios", authenticateToken, usuariosRouter);
 
-// Manejo de la raíz
+
 app.get("/", (req, res) => {
   res.json({ message: "Bienvenido al servidor de Tickets App" });
 });
