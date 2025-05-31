@@ -4,7 +4,7 @@ import axios from "axios";
 import axiosRetry from "axios-retry";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -17,16 +17,11 @@ import {
   useTheme,
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { API_URL } from "../config/config"; // Ajusta la ruta según la ubicación del archivo
 import ImpresorasScreen from "./ImpresorasScreen";
 
 // Configura reintentos para axios
 axiosRetry(axios, { retries: 3, retryDelay: (retryCount) => retryCount * 1000 });
-
-// Configura API_URL según el entorno
-const API_URL =
-  Platform.OS === "android" && !Platform.isPad
-    ? "http://192.168.101.8:5000" // Emulador Android
-    : "http://192.168.101.8:5000"; // Dispositivo físico o IP de tu máquina
 
 const UsuarioScreen = () => {
   const theme = useTheme();

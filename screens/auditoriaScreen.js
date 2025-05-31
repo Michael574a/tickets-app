@@ -15,9 +15,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { Row, Rows, Table } from "react-native-table-component";
-
-// Define API URL based on platform
-const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://10.0.2.2:5000";
+import { API_URL } from "../config/config"; // Ajusta la ruta según la ubicación del archivo
 
 const AdministradorScreen = () => {
   const theme = useTheme();

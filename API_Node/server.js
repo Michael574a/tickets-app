@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -6,17 +7,19 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const XLSX = require("xlsx"); // Para exportar a Excel
 const PDFDocument = require("pdfkit"); // Para exportar a PDF
-const SECRET_KEY = "KeyPrueba654321";
 const app = express();
 const port = 5000;
 
+console.log("DB_PASSWORD:", process.env.DB_PASSWORD, typeof process.env.DB_PASSWORD); // Justo antes de crear el pool
+
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "db_tickets",
-  password: "1234",
-  port: 5432,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD) : "",
+  port: Number(process.env.DB_PORT),
 });
+const SECRET_KEY = process.env.SECRET_KEY;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -503,7 +506,7 @@ usuariosRouter.post("/register", async (req, res, next) => {
     );
     res.locals.createdId = result.rows[0].id;
     res.status(201).json(result.rows[0]);
-    next(); // Proceed to auditCreateMiddleware
+    next(); 
   } catch (error) {
     console.error("Error al registrar usuario:", error);
     res.status(500).json({ error: "Error al registrar usuario" });

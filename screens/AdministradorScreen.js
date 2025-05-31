@@ -20,8 +20,7 @@ import {
 } from "react-native-paper";
 import { Row, Table } from "react-native-table-component";
 import * as XLSX from 'xlsx';
-
-const API_URL = Platform.OS === 'web' ? "http://localhost:5000" : "http://192.168.101.8:5000";
+import { API_URL } from "../config/config"; // Ajusta la ruta según la ubicación del archivo
 
 const AdministradorScreen = () => {
   const theme = useTheme();

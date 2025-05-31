@@ -1,12 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Button, Text, TextInput, useTheme } from "react-native-paper";
+import { API_URL } from "../config/config"; // Ajusta la ruta según la ubicación del archivo
 
-
-// Ajusta esta URL según tu IP local si estás en un dispositivo físico
-const API_URL = Platform.OS === "web" ? "http://localhost:5000" : "http://192.168.101.8:5000"; // Cambia 192.168.1.10 por tu IP
 
 export default function LoginScreen({ navigation }) {
   const theme = useTheme(); // Obtiene el tema actual

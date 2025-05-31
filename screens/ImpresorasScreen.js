@@ -14,9 +14,8 @@ import {
   useTheme,
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { API_URL } from "../config/config"; // Ajusta la ruta según la ubicación del archivo
 
-//const API_URL = "http://45.70.15.5:5000";
-const API_URL = "http://192.168.101.8:5000";
 const ImpresorasScreen = () => {
   const theme = useTheme();
   const [impresoras, setImpresoras] = useState([]);
@@ -120,7 +119,7 @@ const ImpresorasScreen = () => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      margin:-17 ,
+      margin: -17,
     },
     content: {
       flex: 1,
