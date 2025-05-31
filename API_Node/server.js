@@ -10,7 +10,6 @@ const PDFDocument = require("pdfkit"); // Para exportar a PDF
 const app = express();
 const port = 5000;
 
-console.log("DB_PASSWORD:", process.env.DB_PASSWORD, typeof process.env.DB_PASSWORD); // Justo antes de crear el pool
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -24,13 +23,11 @@ const SECRET_KEY = process.env.SECRET_KEY;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Middleware de depuración global
 app.use((req, res, next) => {
   console.log(`Ruta recibida: ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Middleware de autenticación
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -51,13 +48,12 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Middleware de auditoría para "update" y "delete"
 const auditMiddleware = async (req, res, next) => {
   const { method, path, baseUrl } = req;
   const user = req.user;
   let resource = "";
 
-  // Combine baseUrl and path to get the full route, then extract the resource
+ 
   const fullPath = (baseUrl + path).split("/").filter(segment => segment);
   if (fullPath.length > 0 && ["maquinas", "tickets", "usuarios"].includes(fullPath[0])) {
     resource = fullPath[0];
@@ -78,21 +74,17 @@ const auditMiddleware = async (req, res, next) => {
     let details = {};
     if (auditAction === "update") {
       try {
-        // Obtener los datos antiguos
+     
         const oldDataResult = await pool.query(`SELECT * FROM ${resource} WHERE id = $1`, [resourceId]);
         const oldData = oldDataResult.rows[0] || {};
 
-        // Obtener los datos nuevos después de la actualización (ejecutar después de la operación principal)
-        // Guardamos los datos del cuerpo de la solicitud por ahora
+    
         const newDataBody = req.body || {};
 
-        // Para obtener los datos nuevos reales, necesitamos esperar a que la actualización ocurra
-        // Por lo tanto, primero permitimos que el controlador realice la actualización
-        // Guardamos los datos antiguos y el cuerpo para usarlos después
         res.locals.oldData = oldData;
         res.locals.newDataBody = newDataBody;
 
-        // Continuamos con la solicitud y registraremos la auditoría después
+
         next();
         return;
       } catch (error) {
